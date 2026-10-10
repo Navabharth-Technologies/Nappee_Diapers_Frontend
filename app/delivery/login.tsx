@@ -100,7 +100,7 @@ export default function DeliveryLoginScreen() {
               placeholder="Enter phone number"
               value={phone}
               onChangeText={handlePhoneChange}
-              keyboardType="phone-pad"
+              keyboardType="phone-diaper"
               autoCapitalize="none"
               placeholderTextColor={colors.mutedText}
               maxLength={10}

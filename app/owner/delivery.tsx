@@ -180,7 +180,7 @@ export default function OwnerDeliveryScreen() {
               placeholder="Enter phone number"
               value={newPhone}
               onChangeText={handlePhoneChange}
-              keyboardType="phone-pad"
+              keyboardType="phone-diaper"
               maxLength={10}
             />
 

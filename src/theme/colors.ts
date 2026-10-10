@@ -1,15 +1,15 @@
 export const colors = {
-  primary: '#B08DBB',
-  darkPurple: '#82588F',
-  softPurple: '#F5EFF7',
-  cream: '#FFFDF8',
-  background: '#F9F7FA',
-  text: '#26332A',
-  mutedText: '#7A847C',
+  primary: '#9B3D6E',       // Primary Brand Color (Deep Berry/Magenta)
+  darkPurple: '#2A1A24',    // Darker complementary shade for high contrast
+  softPurple: '#F9ECF2',    // Very soft tint of the primary color for chat bubbles
+  cream: '#FFFFFF',
+  background: '#FAFAFA',    // Clean modern background
+  text: '#1E293B',          // Standard Slate 800 for readable text
+  mutedText: '#64748B',     // Standard Slate 500 for secondary text
   white: '#FFFFFF',
   border: '#E2E8F0',
-  error: '#EF4444',
+  error: '#F43F5E',
   success: '#10B981',
-  chatBubbleOut: '#F5EFF7',
+  chatBubbleOut: '#F9ECF2', // Soft pinkish out bubble matching primary
   chatBubbleIn: '#FFFFFF'
 };

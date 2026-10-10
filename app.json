@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "ReLeaf_Pads",
-    "slug": "ReLeaf_Pads",
-    "scheme": "releafpads",
+    "name": "Nappee Diapers",
+    "slug": "Nappee_Diapers",
+    "scheme": "nappeediapers",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
@@ -21,18 +21,18 @@
         "foregroundImage": "./assets/logo.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.tejashwini_s.ReLeaf_Pads",
+      "package": "com.tejashwini_s.Nappee_Diapers",
       "config": {
         "googleMaps": {
-          "apiKey": "dummy_key_to_prevent_crash_releaf_pads"
+          "apiKey": "dummy_key_to_prevent_crash_nappee_diapers"
         }
       }
     },
     "experiments": {
-      "baseUrl": "/ReLeaf_Pads"
+      "baseUrl": "/Nappee_Diapers"
     },
     "web": {
-      "favicon": "./assets/logo.png"
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",

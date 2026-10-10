@@ -11,7 +11,10 @@ export default function OwnerOrdersScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = React.useState('');
 
-  const filteredOrders = orders.filter(o => 
+  // Only show fully PAID orders on the dashboard
+  const validOrders = orders.filter(o => o.paymentStatus === 'PAID');
+  
+  const filteredOrders = validOrders.filter(o => 
     o.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
     customers.find(c => c.id === o.customerId)?.name.toLowerCase().includes(searchQuery.toLowerCase())
   );

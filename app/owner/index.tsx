@@ -9,9 +9,12 @@ export default function OwnerDashboardScreen() {
   const router = useRouter();
   const { orders, products } = useStore();
 
-  const totalSales = orders.filter(o => o.status !== 'CANCELLED').reduce((sum, o) => sum + o.total, 0);
-  const openOrders = orders.filter(o => ['ORDER_PLACED', 'PAYMENT_CONFIRMED', 'ORDER_CONFIRMED', 'PREPARING', 'PACKED'].includes(o.status)).length;
-  const unassignedDeliveries = orders.filter(o => o.status === 'PACKED' && !o.deliveryPartnerId).length;
+  // Only consider orders that are fully PAID
+  const validOrders = orders.filter(o => o.paymentStatus === 'PAID');
+
+  const totalSales = validOrders.filter(o => o.status !== 'CANCELLED').reduce((sum, o) => sum + o.total, 0);
+  const openOrders = validOrders.filter(o => ['ORDER_PLACED', 'PAYMENT_CONFIRMED', 'ORDER_CONFIRMED', 'PREPARING', 'PACKED'].includes(o.status)).length;
+  const unassignedDeliveries = validOrders.filter(o => o.status === 'PACKED' && !o.deliveryPartnerId).length;
   const lowStockItems = products.filter(p => p.stockStatus === 'LOW_STOCK' || p.stockStatus === 'OUT_OF_STOCK').length;
 
   return (
@@ -65,10 +68,10 @@ export default function OwnerDashboardScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Recent Activity</Text>
-        {orders.length === 0 ? (
+        {validOrders.length === 0 ? (
           <Text style={styles.emptyText}>No orders yet.</Text>
         ) : (
-          orders.slice(0, 4).map(order => (
+          validOrders.slice(0, 4).map(order => (
             <TouchableOpacity key={order.id} style={styles.orderCard} onPress={() => router.push(`/owner/order/${order.id.replace('#', '')}`)}>
               <View style={styles.orderHeader}>
                 <Text style={styles.orderId}>{order.id}</Text>

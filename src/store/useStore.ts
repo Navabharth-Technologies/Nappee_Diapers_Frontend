@@ -9,8 +9,8 @@ import {
 import { mockProducts, mockCustomers, mockDeliveryPartners, mockOrders, mockCoupons, SERVICEABLE_PINCODES } from './mockData';
 
 interface AppState {
-  appStoreType: 'PADS' | 'DIAPERS';
-  setAppStoreType: (type: 'PADS' | 'DIAPERS') => void;
+  appStoreType: 'diapers' | 'DIAPERS';
+  setAppStoreType: (type: 'diapers' | 'DIAPERS') => void;
 
   // Data
   products: Product[];
@@ -82,7 +82,7 @@ const generateOrderId = (orders: any[]) => {
   return `#RL${dateStr}-${randomSuffix}`;
 };
 
-export const getApiUrl = (storeType: 'PADS' | 'DIAPERS') => {
+export const getApiUrl = (storeType: 'diapers' | 'DIAPERS') => {
   if (Platform.OS === 'web') {
     return 'http://127.0.0.1:5001';
   }
@@ -96,37 +96,62 @@ export const getApiUrl = (storeType: 'PADS' | 'DIAPERS') => {
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
-      appStoreType: 'PADS',
+      appStoreType: 'diapers',
       setAppStoreType: (type) => set({ appStoreType: type }),
-      products: mockProducts,
-      customers: mockCustomers,
-      orders: mockOrders,
-      deliveryPartners: mockDeliveryPartners,
+      products: [],
+      customers: [],
+      orders: [],
+      deliveryPartners: [],
       
       currentCustomer: null,
       currentAddress: null,
       selectedLocation: null,
       currentDeliveryPartner: null,
       cart: [],
-      coupons: mockCoupons,
+      coupons: [],
       appliedCoupon: null,
       chatMessages: [
         {
           id: 'init-msg',
           sender: 'bot',
-          text: "Hello! 👋 Welcome to ReLeaf Pads.\n\nWe're happy to help you with comfortable, thoughtful menstrual care. 💚\n\nWhat would you like to do today?",
+          text: "Hello! 👋 Welcome to Nappee Diapers.\n\nWe're happy to help you with comfortable, thoughtful baby care. 💚\n\nWhat would you like to do today?",
           timestamp: new Date().toISOString(),
           type: 'text'
         }
       ],
       chatState: 'WELCOME',
       
-      toggleProductStock: (productId) => set((state) => ({
-        products: state.products.map(p => p.id === productId ? { ...p, stock: p.stock > 0 ? 0 : 50, stockStatus: p.stock > 0 ? 'OUT_OF_STOCK' : 'IN_STOCK' } : p)
-      })),
-      toggleProductActive: (productId) => set((state) => ({
-        products: state.products.map(p => p.id === productId ? { ...p, active: !p.active } : p)
-      })),
+      toggleProductStock: async (productId) => {
+        const p = get().products.find(x => x.id === productId);
+        if (!p) return;
+        const newStock = p.stock > 0 ? 0 : 50;
+        const newStatus = p.stock > 0 ? 'OUT_OF_STOCK' : 'IN_STOCK';
+        set((state) => ({
+          products: state.products.map(p => p.id === productId ? { ...p, stock: newStock, stockStatus: newStatus } : p)
+        }));
+        try {
+          await fetch(`${getApiUrl(get().appStoreType)}/api/products/${productId}/stock`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stock: newStock, stockStatus: newStatus })
+          });
+        } catch(err) { console.error(err); }
+      },
+      toggleProductActive: async (productId) => {
+        const p = get().products.find(x => x.id === productId);
+        if (!p) return;
+        const newActive = !p.active;
+        set((state) => ({
+          products: state.products.map(p => p.id === productId ? { ...p, active: newActive } : p)
+        }));
+        try {
+          await fetch(`${getApiUrl(get().appStoreType)}/api/products/${productId}/active`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ active: newActive })
+          });
+        } catch(err) { console.error(err); }
+      },
       updateProductImage: async (productId, imageUrl) => {
         set((state) => ({
           products: state.products.map(p => p.id === productId ? { ...p, imageUrl } : p)
@@ -142,21 +167,25 @@ export const useStore = create<AppState>()(
         }
       },
 
-      updateProductStock: (productId, change) => set((state) => {
-        return {
-          products: state.products.map(p => {
-            if (p.id === productId) {
-              const newStock = Math.max(0, p.stock + change);
-              let newStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' = 'IN_STOCK';
-              if (newStock === 0) newStatus = 'OUT_OF_STOCK';
-              else if (newStock <= 10) newStatus = 'LOW_STOCK';
-              
-              return { ...p, stock: newStock, stockStatus: newStatus };
-            }
-            return p;
-          })
-        };
-      }),
+      updateProductStock: async (productId, change) => {
+        const p = get().products.find(x => x.id === productId);
+        if (!p) return;
+        const newStock = Math.max(0, p.stock + change);
+        let newStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' = 'IN_STOCK';
+        if (newStock === 0) newStatus = 'OUT_OF_STOCK';
+        else if (newStock <= 10) newStatus = 'LOW_STOCK';
+        
+        set((state) => ({
+          products: state.products.map(p => p.id === productId ? { ...p, stock: newStock, stockStatus: newStatus } : p)
+        }));
+        try {
+          await fetch(`${getApiUrl(get().appStoreType)}/api/products/${productId}/stock`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stock: newStock, stockStatus: newStatus })
+          });
+        } catch(err) { console.error(err); }
+      },
       
       addToCart: (product, quantity = 1) => set((state) => {
         const existingItem = state.cart.find(item => item.product.id === product.id);
@@ -477,24 +506,24 @@ export const useStore = create<AppState>()(
         switch (status) {
           case 'ORDER_CONFIRMED':
             message = 'Order Confirmed';
-            chatText = `🎉 Your ReLeaf order has been confirmed!\n\nYour order ${orderId} is now being prepared with care. 💚\n\nWe'll keep you updated here.`;
+            chatText = `🎉 Your Nappee order has been confirmed!\n\nYour order ${orderId} is now being prepared with care. 💚\n\nWe'll keep you updated here.`;
             break;
           case 'PREPARING':
             message = 'Preparing';
-            chatText = `🌿 Your ReLeaf order ${orderId} is now being prepared.`;
+            chatText = `🌿 Your Nappee order ${orderId} is now being prepared.`;
             break;
           case 'PACKED':
             message = 'Packed';
-            chatText = `📦 Your ReLeaf order ${orderId} has been packed and is ready for dispatch.`;
+            chatText = `📦 Your Nappee order ${orderId} has been packed and is ready for dispatch.`;
             break;
           case 'OUT_FOR_DELIVERY':
             message = 'Out for Delivery';
             const partner = state.deliveryPartners.find(dp => dp.id === order.deliveryPartnerId);
-            chatText = `🚚 ${partner?.name || 'Your delivery partner'} has picked up your ReLeaf order and is on the way!\n\nContact: ${partner?.phone || ''}\n\nYou can contact them directly for any delivery updates.`;
+            chatText = `🚚 ${partner?.name || 'Your delivery partner'} has picked up your Nappee order and is on the way!\n\nContact: ${partner?.phone || ''}\n\nYou can contact them directly for any delivery updates.`;
             break;
           case 'DELIVERED':
             message = 'Delivered';
-            chatText = `🌿 Order Delivered\n\nYour ReLeaf order ${orderId} has been successfully delivered.\n\nThank you for choosing ReLeaf Pads and for trusting us with your care. 💚\n\nWe hope you have a comfortable and confident experience.\n\nThank you for shopping with ReLeaf. 🌿`;
+            chatText = `🌿 Order Delivered\n\nYour Nappee order ${orderId} has been successfully delivered.\n\nThank you for choosing Nappee Diapers and for trusting us with your care. 💚\n\nWe hope you have a comfortable and confident experience.\n\nThank you for shopping with Nappee. 🌿`;
             break;
           default:
             message = status;
@@ -603,7 +632,7 @@ export const useStore = create<AppState>()(
           message: 'Delivery Partner Assigned'
         };
 
-        const chatText = `🚚 Your ReLeaf order has been assigned to our delivery partner, ${partner?.name || 'an agent'}.`;
+        const chatText = `🚚 Your Nappee order has been assigned to our delivery partner, ${partner?.name || 'an agent'}.`;
 
         set((state) => {
           const order = state.orders.find(o => o.id === orderId);
@@ -671,7 +700,7 @@ export const useStore = create<AppState>()(
         }));
 
         if (order.customerId === state.currentCustomer?.id) {
-          get().addChatMessage({ sender: 'bot', text: `Your ReLeaf order ${orderId} has been cancelled successfully.`, type: 'text', orderId });
+          get().addChatMessage({ sender: 'bot', text: `Your Nappee order ${orderId} has been cancelled successfully.`, type: 'text', orderId });
         }
       },
       
@@ -770,7 +799,7 @@ export const useStore = create<AppState>()(
           {
             id: generateId(),
             sender: 'bot',
-            text: "Hello! 👋 Welcome to ReLeaf Pads.\n\nWe're happy to help you with comfortable, thoughtful menstrual care. 💚\n\nWhat would you like to do today?",
+            text: "Hello! 👋 Welcome to Nappee Diapers.\n\nWe're happy to help you with comfortable, thoughtful baby care. 💚\n\nWhat would you like to do today?",
             timestamp: new Date().toISOString(),
             type: 'text'
           }
@@ -860,11 +889,10 @@ export const useStore = create<AppState>()(
         deliveryPartners: state.deliveryPartners.filter(dp => dp.id !== id)
       })),
 
-      addProduct: (product) => set((state) => ({
-        products: [
-          ...state.products,
-          {
-            id: `prod_${Date.now()}`,
+      addProduct: async (product) => {
+        const id = `prod_${Date.now()}`;
+        const newProduct = {
+            id,
             name: product.name || 'New Product',
             packSize: product.packSize || '1',
             mrp: product.mrp || 0,
@@ -876,10 +904,18 @@ export const useStore = create<AppState>()(
             stock: product.stock || 0,
             stockStatus: (product.stock || 0) > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK',
             totalSold: 0,
-            active: true
-          }
-        ]
-      })),
+            active: true,
+            category: product.category || 'Pant-Style'
+        };
+        set((state) => ({ products: [...state.products, newProduct] }));
+        try {
+          await fetch(`${getApiUrl(get().appStoreType)}/api/products`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newProduct)
+          });
+        } catch(err) { console.error(err); }
+      },
 
       addCoupon: (coupon) => {
         const id = `coupon_${Date.now()}`;
@@ -944,26 +980,16 @@ export const useStore = create<AppState>()(
       }
     }),
     {
-      name: 'releaf-storage',
+      name: 'nappee-storage-v2', // Changed to v2 to wipe out the old cached cart data for the user
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => {
-        // Strip out base64 images from the cart to avoid exceeding the 5MB LocalStorage limit on Web
-        const sanitizedCart = state.cart.map(item => {
-          const product = { ...item.product };
-          delete product.imageUrl;
-          delete product.imageFallback;
-          return { ...item, product };
-        });
-
+        // We only persist customer credentials and selected location across reloads.
+        // Cart and Chat history are intentionally excluded so they start fresh every time!
         return {
           appStoreType: state.appStoreType,
-          cart: sanitizedCart,
-          chatMessages: state.chatMessages,
-          chatState: state.chatState,
           currentCustomer: state.currentCustomer,
           currentAddress: state.currentAddress,
-          appliedCoupon: state.appliedCoupon,
-          tempCustomer: state.tempCustomer
+          appliedCoupon: state.appliedCoupon
         };
       },
     }

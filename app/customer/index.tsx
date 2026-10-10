@@ -97,10 +97,10 @@ export default function CustomerChatScreen() {
       } else {
         addChatMessage({
           sender: 'bot',
-          text: "We're sorry! 💚\n\nAt the moment, ReLeaf Pads offers direct delivery only within Mysore.\n\nWe're working towards expanding our delivery coverage.\n\nYou can still explore our complete range and place your order through our official website.",
+          text: "We're sorry! 💚\n\nAt the moment, Nappee Diapers offers direct delivery only within Mysore.\n\nWe're working towards expanding our delivery coverage.\n\nYou can still explore our complete range and place your order through our official website.",
           type: 'link',
-          linkText: 'Visit ReLeaf Website',
-          linkUrl: 'https://www.releafpads.in/'
+          linkText: 'Visit nappee Website',
+          linkUrl: 'https://www.nappee.com/'
         });
         setChatState('WELCOME');
       }
@@ -115,7 +115,7 @@ export default function CustomerChatScreen() {
       if (isValidPhone) {
         
         try {
-          const res = await fetch(`${getApiUrl('PADS')}/api/customers`);
+          const res = await fetch(`${getApiUrl('diapers')}/api/customers`);
           if (res.ok) {
             const data = await res.json();
             useStore.setState({ customers: data });
@@ -190,15 +190,24 @@ export default function CustomerChatScreen() {
     if (lowerText.includes('hi') || lowerText.includes('hello')) {
       addChatMessage({
         sender: 'bot',
-        text: 'Hello! 👋 Welcome to ReLeaf Pads. How can we help you today?',
+        text: 'Hello! 👋 Welcome to Nappee Diapers. How can we help you today?',
         type: 'text'
       });
       setChatState('WELCOME');
     } else if (lowerText.includes('product') || lowerText.includes('shop') || lowerText.includes('buy')) {
       addChatMessage({
         sender: 'bot',
-        text: 'Here are our available ReLeaf Cotton Sanitary Pad packs:',
-        type: 'products'
+        text: 'What kind of diapers are you looking for?',
+        type: 'category_selection'
+      });
+      setChatState('SELECTING_CATEGORY');
+    } else if (currentState === 'SELECTING_CATEGORY' && (lowerText.includes('pant') || lowerText.includes('velcro'))) {
+      const type = lowerText.includes('pant') ? 'Pant-Style' : 'Velcro Style';
+      addChatMessage({
+        sender: 'bot',
+        text: `Here are our available ${type} Nappee Diapers:`,
+        type: 'products',
+        category: type
       });
       setChatState('BROWSING_PRODUCTS');
     } else if (lowerText.includes('track') || lowerText.includes('where is my order') || lowerText.includes('status')) {
@@ -220,7 +229,7 @@ export default function CustomerChatScreen() {
       } else {
         const lastOrder = currentCustomer ? orders.find(o => o.customerId === currentCustomer.id) : null;
         if (lastOrder && lastOrder.status === 'DELIVERED') {
-          addChatMessage({ sender: 'bot', text: `🌿 Your last order ${lastOrder.id} has been delivered successfully.\n\nThank you for shopping with ReLeaf. 💚`, type: 'text' });
+          addChatMessage({ sender: 'bot', text: `🌿 Your last order ${lastOrder.id} has been delivered successfully.\n\nThank you for shopping with nappee. 💚`, type: 'text' });
         } else {
           addChatMessage({ sender: 'bot', text: "You don't have any active orders right now. Would you like to shop for products?", type: 'text' });
         }
@@ -247,7 +256,7 @@ export default function CustomerChatScreen() {
       } else {
         // AI Fallback Integration
         
-        const API_URL = getApiUrl('PADS');
+        const API_URL = getApiUrl('diapers');
         const customerId = useStore.getState().currentCustomer?.phone || 'mobile_user';
         
         try {
@@ -301,16 +310,16 @@ export default function CustomerChatScreen() {
 
     try {
       // 1. Create PENDING Order in Zustand & Database
-      const releafOrderId = await createOrder('RAZORPAY');
+      const nappeeOrderId = await createOrder('RAZORPAY');
       
       // 2. Fetch Razorpay Order ID from Backend
       const { Platform } = require('react-native');
       
-      const API_URL = getApiUrl('PADS');
+      const API_URL = getApiUrl('diapers');
       const response = await fetch(`${API_URL}/api/payments/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: releafOrderId })
+        body: JSON.stringify({ orderId: nappeeOrderId })
       });
       
       const data = await response.json();
@@ -321,15 +330,15 @@ export default function CustomerChatScreen() {
       
       // 3. Configure Razorpay Checkout
       const options = {
-        description: 'ReLeaf Sanitary Pads Order',
-        image: 'https://releaf-pads.com/logo.png', // Optional branding
+        description: 'nappee diapers Order',
+        image: 'https://nappee-diapers.com/logo.png', // Optional branding
         currency: data.currency,
         key: data.keyId,
         amount: data.amount,
-        name: 'ReLeaf Pads',
+        name: 'Nappee Diapers',
         order_id: data.razorpayOrderId,
         prefill: {
-          email: 'customer@releafpads.com',
+          email: 'customer@nappeediapers.com',
           contact: currentCustomer?.phone || '',
           name: currentCustomer?.name || ''
         },
@@ -361,7 +370,7 @@ export default function CustomerChatScreen() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  orderId: releafOrderId,
+                  orderId: nappeeOrderId,
                   razorpayPaymentId: paymentData.razorpay_payment_id,
                   razorpayOrderId: paymentData.razorpay_order_id,
                   razorpaySignature: paymentData.razorpay_signature
@@ -371,10 +380,10 @@ export default function CustomerChatScreen() {
               const verifyData = await verifyRes.json();
               
               if (verifyData.success) {
-                markOrderAsPaid(releafOrderId, 'RAZORPAY_UPI');
+                markOrderAsPaid(nappeeOrderId, 'RAZORPAY_UPI');
                 addChatMessage({
                   sender: 'bot',
-                  text: `🎉 Payment Successful!\n\nThank you for choosing ReLeaf Pads. 💚\nYour order has been successfully placed.\n\nOrder ID: ${releafOrderId}\nPayment ID: ${paymentData.razorpay_payment_id}\n\nYour order is now being prepared with care.\nWe'll keep you updated right here.`,
+                  text: `🎉 Payment Successful!\n\nThank you for choosing Nappee Diapers. 💚\nYour order has been successfully placed.\n\nOrder ID: ${nappeeOrderId}\nPayment ID: ${paymentData.razorpay_payment_id}\n\nYour order is now being prepared with care.\nWe'll keep you updated right here.`,
                   type: 'text'
                 });
                 setChatState('ORDER_CONFIRMED');
@@ -415,7 +424,7 @@ export default function CustomerChatScreen() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-               orderId: releafOrderId,
+               orderId: nappeeOrderId,
                razorpayPaymentId: paymentData.razorpay_payment_id,
                razorpayOrderId: paymentData.razorpay_order_id,
                razorpaySignature: paymentData.razorpay_signature
@@ -425,11 +434,11 @@ export default function CustomerChatScreen() {
           const verifyData = await verifyRes.json();
           
           if (verifyData.success) {
-            markOrderAsPaid(releafOrderId, 'RAZORPAY_UPI');
+            markOrderAsPaid(nappeeOrderId, 'RAZORPAY_UPI');
             
             addChatMessage({
               sender: 'bot',
-              text: `🎉 Payment Successful!\n\nThank you for choosing ReLeaf Pads. 💚\nYour order has been successfully placed.\n\nOrder ID: ${releafOrderId}\nPayment ID: ${paymentData.razorpay_payment_id}\n\nYour order is now being prepared with care.\nWe'll keep you updated right here.`,
+              text: `🎉 Payment Successful!\n\nThank you for choosing Nappee Diapers. 💚\nYour order has been successfully placed.\n\nOrder ID: ${nappeeOrderId}\nPayment ID: ${paymentData.razorpay_payment_id}\n\nYour order is now being prepared with care.\nWe'll keep you updated right here.`,
               type: 'text'
             });
             setChatState('ORDER_CONFIRMED');
@@ -482,7 +491,7 @@ export default function CustomerChatScreen() {
               { alignSelf: isBot ? 'flex-start' : 'flex-end' }
             ]}>
               <Text style={[styles.messageText, isBot ? styles.textBot : styles.textUser]}>
-                {item.text}
+                {typeof item.text === 'string' ? item.text : (item.text as any)?.text || JSON.stringify(item.text)}
               </Text>
             </View>
           ) : null}
@@ -564,15 +573,39 @@ export default function CustomerChatScreen() {
             </View>
           )}
 
+          {item.type === 'category_selection' && (
+            <View style={{ marginTop: 12, flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                style={[styles.primaryBtn, { flex: 1, marginTop: 0, paddingVertical: 12 }]}
+                onPress={() => {
+                  addChatMessage({ sender: 'user', text: 'Pant-Style Diapers' });
+                  setTimeout(() => processStatefulResponse('pant'), 100);
+                }}
+              >
+                <Text style={styles.primaryBtnText}>👖 Pant-Style</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.primaryBtn, { flex: 1, marginTop: 0, paddingVertical: 12 }]}
+                onPress={() => {
+                  addChatMessage({ sender: 'user', text: 'Velcro Style Diapers' });
+                  setTimeout(() => processStatefulResponse('velcro'), 100);
+                }}
+              >
+                <Text style={styles.primaryBtnText}>🎀 Velcro Style</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {item.type === 'products' && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.carousel}>
-              {products.filter(p => p.active).map(p => {
+              {products.filter(p => p.active && (!item.category || (p.category === item.category || p.name.includes(item.category)))).map(p => {
                 const isOut = p.stockStatus === 'OUT_OF_STOCK';
                 return (
                   <View key={p.id} style={styles.productCard}>
                     <View>
                       {p.imageUrl ? (
-                        <Image source={{ uri: p.imageUrl }} style={styles.img} />
+                        <Image source={{ uri: p.imageUrl.startsWith('http') ? p.imageUrl : getApiUrl('diapers') + p.imageUrl }} style={styles.img} />
                       ) : (
                         <View style={[styles.img, { backgroundColor: p.imageFallback }]} />
                       )}
@@ -757,7 +790,7 @@ export default function CustomerChatScreen() {
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Message ReLeaf Pads..."
+          placeholder="Message Nappee Diapers..."
           value={inputText}
           onChangeText={handleTextChange}
           onSubmitEditing={handleSend}
@@ -826,13 +859,13 @@ const styles = StyleSheet.create({
   },
   messageBubble: { 
     maxWidth: '85%', 
-    padding: 12, 
-    borderRadius: 16,
+    padding: 14, 
+    borderRadius: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   bubbleBot: { backgroundColor: colors.white, borderBottomLeftRadius: 4 },
   bubbleUser: { backgroundColor: colors.chatBubbleOut, borderBottomRightRadius: 4 },
@@ -845,11 +878,11 @@ const styles = StyleSheet.create({
   quickReplies: { flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 12 },
   qrBtn: { backgroundColor: colors.white, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, marginRight: 10, borderWidth: 1, borderColor: colors.primary },
   qrText: { color: colors.primary, fontWeight: '500' },
-  carousel: { marginTop: 12, width: '100%', height: 240 },
-  addressCard: { width: 220, height: 160, backgroundColor: colors.white, borderRadius: 12, padding: 12, marginRight: 12, borderWidth: 1, borderColor: colors.border, justifyContent: 'space-between' },
-  productCard: { width: 150, height: 230, backgroundColor: colors.white, borderRadius: 12, padding: 10, marginRight: 12, borderWidth: 1, borderColor: colors.border, justifyContent: 'space-between' },
-  img: { height: 80, borderRadius: 8, marginBottom: 8 },
-  pName: { fontSize: 13, fontWeight: '600', marginBottom: 4 },
+  carousel: { marginTop: 12, width: '100%', height: 250 },
+  addressCard: { width: 240, height: 170, backgroundColor: colors.white, borderRadius: 20, padding: 16, marginRight: 16, borderWidth: 1, borderColor: colors.border, justifyContent: 'space-between', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  productCard: { width: 160, height: 240, backgroundColor: colors.white, borderRadius: 20, padding: 12, marginRight: 16, borderWidth: 1, borderColor: colors.border, justifyContent: 'space-between', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  img: { height: 90, borderRadius: 12, marginBottom: 12 },
+  pName: { fontSize: 14, fontWeight: '600', marginBottom: 6 },
   pPrice: { fontSize: 14, fontWeight: '700', color: colors.darkPurple, marginBottom: 8 },
   btn: { backgroundColor: colors.softPurple, paddingVertical: 8, borderRadius: 6, alignItems: 'center' },
   btnText: { color: colors.primary, fontSize: 12, fontWeight: '600' },
@@ -872,13 +905,13 @@ const styles = StyleSheet.create({
   couponDesc: { fontSize: 14, fontWeight: '600', marginBottom: 4 },
   couponSubDesc: { fontSize: 12, color: colors.mutedText, marginBottom: 8 },
   couponMin: { fontSize: 11, color: colors.mutedText, marginBottom: 12, fontStyle: 'italic' },
-  primaryBtn: { backgroundColor: colors.primary, paddingVertical: 10, borderRadius: 8, alignItems: 'center', marginTop: 12 },
-  primaryBtnText: { color: colors.white, fontWeight: '600' },
+  primaryBtn: { backgroundColor: colors.primary, paddingVertical: 12, borderRadius: 24, alignItems: 'center', marginTop: 16, shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 4 },
+  primaryBtnText: { color: colors.white, fontWeight: '700', fontSize: 15 },
   boldText: { fontWeight: '700', marginBottom: 12 },
-  paymentBtn: { padding: 12, borderWidth: 1, borderColor: colors.border, borderRadius: 8, marginBottom: 8, alignItems: 'center' },
-  paymentBtnText: { fontWeight: '600', color: colors.text },
-  linkCard: { marginTop: 8, backgroundColor: colors.softPurple, padding: 10, borderRadius: 8, alignItems: 'center' },
-  linkText: { color: colors.primary, fontWeight: '600' },
-  inlineCheckoutBtn: { marginTop: 12, backgroundColor: colors.primary, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, alignSelf: 'flex-start' },
-  inlineCheckoutBtnText: { color: colors.white, fontWeight: '600', fontSize: 14 }
+  paymentBtn: { padding: 16, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: 24, marginBottom: 8, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
+  paymentBtnText: { fontWeight: '700', color: colors.text, fontSize: 15 },
+  linkCard: { marginTop: 8, backgroundColor: colors.softPurple, padding: 12, borderRadius: 16, alignItems: 'center' },
+  linkText: { color: colors.primary, fontWeight: '700' },
+  inlineCheckoutBtn: { marginTop: 12, backgroundColor: colors.primary, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 24, alignSelf: 'flex-start', shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 4 },
+  inlineCheckoutBtnText: { color: colors.white, fontWeight: '700', fontSize: 15 }
 });

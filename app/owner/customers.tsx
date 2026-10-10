@@ -7,8 +7,14 @@ import { Customer } from '../../src/store/types';
 export default function OwnerCustomersScreen() {
   const { customers, orders } = useStore();
 
+  // Only consider orders that are fully PAID
+  const validOrders = orders.filter(o => o.paymentStatus === 'PAID');
+  
+  // Only show customers who have at least one valid order
+  const validCustomers = customers.filter(c => validOrders.some(o => o.customerId === c.id));
+
   const renderCustomer = ({ item }: { item: Customer }) => {
-    const customerOrders = orders.filter(o => o.customerId === item.id);
+    const customerOrders = validOrders.filter(o => o.customerId === item.id);
     const totalSpent = customerOrders.reduce((sum, o) => sum + o.total, 0);
 
     return (
@@ -27,7 +33,7 @@ export default function OwnerCustomersScreen() {
   return (
     <View style={styles.container}>
       <FlatList
-        data={customers}
+        data={validCustomers}
         keyExtractor={item => item.id}
         renderItem={renderCustomer}
         contentContainerStyle={styles.list}

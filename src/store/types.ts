@@ -12,6 +12,7 @@ export interface Product {
   stockStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
   totalSold: number;
   active: boolean;
+  category?: string;
 }
 
 export interface Address {
@@ -40,7 +41,7 @@ export interface Customer {
   addresses: Address[];
 }
 
-export type AppStoreType = 'PADS' | 'DIAPERS';
+export type AppStoreType = 'diapers' | 'DIAPERS';
 
 export interface StoreState {
   appStoreType: AppStoreType;
@@ -132,13 +133,16 @@ export interface ChatMessage {
   sender: 'bot' | 'user';
   text: string;
   timestamp: string;
-  type?: 'text' | 'products' | 'cart' | 'checkout' | 'payment' | 'order_success' | 'link';
+  type?: 'text' | 'products' | 'cart' | 'checkout' | 'payment' | 'order_success' | 'link' | 'add_to_cart_success' | 'location_prompt' | 'address_selection' | 'category_selection';
   linkUrl?: string;
   linkText?: string;
   orderId?: string;
+  existingAddresses?: Address[];
+  pincode?: string;
+  category?: string;
 }
 
-export type ChatState = 'IDLE' | 'WELCOME' | 'BROWSING_PRODUCTS' | 'PRODUCT_SELECTED' | 'CART' | 'CHECKING_PINCODE' | 'COLLECTING_CUSTOMER_DETAILS' | 'COLLECTING_CUSTOMER_DETAILS_NAME' | 'COLLECTING_ADDRESS' | 'ADDRESS_CONFIRMATION' | 'ORDER_REVIEW' | 'PAYMENT' | 'PAYMENT_SUCCESS' | 'ORDER_CONFIRMED' | 'PREPARING' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'WAITING_FOR_LOCATION';
+export type ChatState = 'IDLE' | 'WELCOME' | 'SELECTING_CATEGORY' | 'BROWSING_PRODUCTS' | 'PRODUCT_SELECTED' | 'CART' | 'CHECKING_PINCODE' | 'COLLECTING_CUSTOMER_DETAILS' | 'COLLECTING_CUSTOMER_DETAILS_NAME' | 'COLLECTING_ADDRESS' | 'ADDRESS_CONFIRMATION' | 'ORDER_REVIEW' | 'PAYMENT' | 'PAYMENT_SUCCESS' | 'ORDER_CONFIRMED' | 'PREPARING' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'WAITING_FOR_LOCATION';
 
 export type CouponType = 'PERCENTAGE' | 'FIXED' | 'INFLUENCER';
 export type DiscountType = 'PERCENTAGE' | 'FIXED_AMOUNT';

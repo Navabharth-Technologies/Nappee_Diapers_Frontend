@@ -263,7 +263,7 @@ export default function OwnerCouponsScreen() {
                     value={newCoupon.contactNumber}
                     onChangeText={handleContactNumberChange}
                     placeholder="Enter contact number"
-                    keyboardType="phone-pad"
+                    keyboardType="phone-diaper"
                     maxLength={10}
                   />
                 </View>

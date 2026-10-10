@@ -56,7 +56,7 @@ function App() {
       {/* Sidebar */}
       <div className="sidebar">
         <div className="sidebar-header">
-          <h2>🌿 ReLeaf Admin</h2>
+          <h2>🌿 nappee Admin</h2>
           <div className="tab-buttons">
             <button 
               className={`tab-btn ${activeTab === 'crm' ? 'active' : ''}`}

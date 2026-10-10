@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, Switch, TouchableOpacity, Modal, TextInput, Image } from 'react-native';
+import { View, Text, StyleSheet, SectionList, Switch, TouchableOpacity, Modal, TextInput, Image } from 'react-native';
 import { colors } from '../../src/theme/colors';
-import { useStore } from '../../src/store/useStore';
+import { useStore, getApiUrl } from '../../src/store/useStore';
 import { Plus, Minus, ArrowLeft, ImagePlus } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -15,6 +15,7 @@ export default function OwnerProductsScreen() {
   const [price, setPrice] = React.useState('');
   const [stock, setStock] = React.useState('');
   const [imageUri, setImageUri] = React.useState<string | null>(null);
+  const [category, setCategory] = React.useState('Pant-Style');
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -53,10 +54,12 @@ export default function OwnerProductsScreen() {
         stock: Number(stock) || 0,
         packSize: '1',
         imageUrl: imageUri || undefined,
+        category,
       });
       setName('');
       setPrice('');
       setStock('');
+      setCategory('Pant-Style');
       setImageUri(null);
       setModalVisible(false);
     }
@@ -72,7 +75,7 @@ export default function OwnerProductsScreen() {
         <View style={styles.cardTop}>
           <TouchableOpacity onPress={() => handleChangeImage(item.id)} style={styles.imageWrapper}>
             {item.imageUrl ? (
-              <Image source={{ uri: item.imageUrl }} style={styles.imagePlaceholder} />
+              <Image source={{ uri: item.imageUrl.startsWith('http') ? item.imageUrl : getApiUrl('diapers') + item.imageUrl }} style={styles.imagePlaceholder} />
             ) : (
               <View style={[styles.imagePlaceholder, { backgroundColor: item.imageFallback }]}>
                 <ImagePlus size={20} color="rgba(255,255,255,0.7)" />
@@ -134,10 +137,16 @@ export default function OwnerProductsScreen() {
           <Plus size={24} color={colors.primary} />
         </TouchableOpacity>
       </View>
-      <FlatList
-        data={products}
+      <SectionList
+        sections={[
+          { title: 'Pant-Style Diapers', data: products.filter(p => p.category === 'Pant-Style' || p.name.includes('Pant')) },
+          { title: 'Velcro Style Diapers', data: products.filter(p => p.category === 'Velcro Style' || p.name.includes('Velcro')) }
+        ]}
         keyExtractor={item => item.id}
         renderItem={renderProduct}
+        renderSectionHeader={({ section: { title } }) => (
+          <Text style={styles.sectionHeader}>{title}</Text>
+        )}
         contentContainerStyle={styles.list}
       />
 
@@ -156,8 +165,24 @@ export default function OwnerProductsScreen() {
               style={styles.input}
               placeholder="Enter product name"
               value={name}
-              onChangeText={(text) => setName(text.replace(/[^a-zA-Z0-9\s]/g, ''))}
+              onChangeText={(text) => setName(text.replace(/[^a-zA-Z0-9\s-]/g, ''))}
             />
+            
+            <Text style={styles.inputLabel}>Category</Text>
+            <View style={styles.categoryContainer}>
+              <TouchableOpacity 
+                style={[styles.categoryBtn, category === 'Pant-Style' && styles.categoryBtnActive]}
+                onPress={() => setCategory('Pant-Style')}
+              >
+                <Text style={[styles.categoryText, category === 'Pant-Style' && styles.categoryTextActive]}>Pant-Style</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.categoryBtn, category === 'Velcro Style' && styles.categoryBtnActive]}
+                onPress={() => setCategory('Velcro Style')}
+              >
+                <Text style={[styles.categoryText, category === 'Velcro Style' && styles.categoryTextActive]}>Velcro Style</Text>
+              </TouchableOpacity>
+            </View>
 
             <View style={{ flexDirection: 'row', gap: 16 }}>
               <View style={{ flex: 1 }}>
@@ -221,6 +246,7 @@ const styles = StyleSheet.create({
   addBtn: { padding: 4 },
   headerTitle: { fontSize: 18, fontWeight: '600', color: colors.text },
   list: { padding: 16 },
+  sectionHeader: { fontSize: 18, fontWeight: '700', color: colors.darkPurple, marginTop: 12, marginBottom: 12 },
   card: { 
     backgroundColor: colors.white, 
     borderRadius: 12, 
@@ -269,5 +295,10 @@ const styles = StyleSheet.create({
   previewImage: { width: 48, height: 48, borderRadius: 8 },
   saveBtn: { backgroundColor: colors.primary, padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 24 },
   saveBtnDisabled: { opacity: 0.5 },
-  saveBtnText: { color: colors.white, fontSize: 16, fontWeight: '600' }
+  saveBtnText: { color: colors.white, fontSize: 16, fontWeight: '600' },
+  categoryContainer: { flexDirection: 'row', gap: 12, marginTop: 8 },
+  categoryBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: colors.border, alignItems: 'center', backgroundColor: colors.white },
+  categoryBtnActive: { backgroundColor: colors.softPurple, borderColor: colors.primary },
+  categoryText: { color: colors.text, fontWeight: '600' },
+  categoryTextActive: { color: colors.primary }
 });

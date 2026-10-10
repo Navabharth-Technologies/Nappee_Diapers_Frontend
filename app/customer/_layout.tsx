@@ -12,7 +12,7 @@ export default function CustomerLayout() {
       <Stack.Screen 
         name="index" 
         options={{ 
-          title: 'ReLeaf Pads (Online)',
+          title: 'Nappee Diapers (Online)',
         }} 
       />
     </Stack>

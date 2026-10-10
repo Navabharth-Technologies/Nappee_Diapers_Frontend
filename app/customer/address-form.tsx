@@ -144,7 +144,7 @@ export default function AddressFormScreen() {
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>PHONE NUMBER *</Text>
-          <TextInput style={[styles.input, errors.phone && styles.inputError]} placeholder="Enter mobile number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+          <TextInput style={[styles.input, errors.phone && styles.inputError]} placeholder="Enter mobile number" value={phone} onChangeText={setPhone} keyboardType="phone-diaper" />
           {!!errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
         </View>
 
@@ -193,7 +193,7 @@ export default function AddressFormScreen() {
             style={[styles.input, errors.pincode && styles.inputError]} 
             value={pincode} 
             onChangeText={setPincode}
-            keyboardType="number-pad" 
+            keyboardType="number-diaper" 
             maxLength={6} 
           />
           {errors.pincode && <Text style={styles.errorText}>{errors.pincode}</Text>}

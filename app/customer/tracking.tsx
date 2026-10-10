@@ -141,7 +141,7 @@ export default function CustomerTrackingScreen() {
             <View style={styles.trackingMapContainer}>
               <View style={styles.mapPoint}>
                 <Text style={styles.mapEmoji}>📍</Text>
-                <Text style={styles.mapPointText}>ReLeaf Dispatch Point</Text>
+                <Text style={styles.mapPointText}>nappee Dispatch Point</Text>
               </View>
               <View style={styles.mapLineContainer}>
                 <View style={styles.mapLine} />

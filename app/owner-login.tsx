@@ -20,7 +20,7 @@ export default function OwnerLoginScreen() {
     
     setLoading(true);
     try {
-      const API_URL = getApiUrl('PADS');
+      const API_URL = getApiUrl('diapers');
       
       const response = await fetch(`${API_URL}/api/owner/login`, {
         method: 'POST',

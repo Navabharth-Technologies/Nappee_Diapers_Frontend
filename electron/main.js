@@ -8,16 +8,16 @@ function startServerAndApp() {
   const server = express();
   const distPath = path.join(__dirname, 'dist');
   
-  server.use('/ReLeaf_Pads', express.static(distPath));
+  server.use('/Nappee_Diapers', express.static(distPath));
   
   // Handle SPA routing by serving index.html for all non-file routes
-  server.use('/ReLeaf_Pads', (req, res) => {
+  server.use('/Nappee_Diapers', (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
   });
 
   // Redirect root to the baseUrl
   server.use((req, res) => {
-    res.redirect('/ReLeaf_Pads/');
+    res.redirect('/Nappee_Diapers/');
   });
 
   // Start server on a random open port (port 0)
