@@ -29,7 +29,7 @@
       }
     },
     "experiments": {
-      "baseUrl": "/Nappee_Diapers"
+      "baseUrl": "/Nappee_Diapers_Frontend"
     },
     "web": {
       "favicon": "./assets/favicon.png"
