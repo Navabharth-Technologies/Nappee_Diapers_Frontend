@@ -17,7 +17,7 @@
   "build": {
     "appId": "com.nappeediapers.desktop",
     "win": {
-      "icon": "../assets/logo.png",
+      "icon": "../assets/icon_512.png",
       "target": [
         "nsis",
         "portable"

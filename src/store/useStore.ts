@@ -82,15 +82,8 @@ const generateOrderId = (orders: any[]) => {
   return `#RL${dateStr}-${randomSuffix}`;
 };
 
-export const getApiUrl = (storeType: 'diapers' | 'DIAPERS') => {
-  if (Platform.OS === 'web') {
-    return 'http://127.0.0.1:5001';
-  }
-  if (storeType === 'DIAPERS') {
-    // This will be replaced once Diapers backend URL is provided
-    return 'https://diapers-backend.trycloudflare.com';
-  }
-  return 'https://contained-produced-rules-perspective.trycloudflare.com';
+export const getApiUrl = (storeType: 'diapers' | 'DIAPERS' = 'diapers') => {
+  return 'https://nappee-cmfab8eyb3d9f0cf.centralindia-01.azurewebsites.net';
 };
 
 export const useStore = create<AppState>()(
@@ -476,7 +469,7 @@ export const useStore = create<AppState>()(
         return newOrder.id;
       },
       
-      markOrderAsPaid: (orderId, paymentMethod) => {
+      markOrderAsPaid: (orderId, paymentMethod = 'RAZORPAY') => {
         set((state) => {
           const updatedOrders = state.orders.map(o => {
             if (o.id === orderId) {
@@ -486,6 +479,13 @@ export const useStore = create<AppState>()(
           });
           return { orders: updatedOrders };
         });
+
+        // Persist to Azure SQL Database
+        fetch(`${getApiUrl(get().appStoreType)}/api/orders/${encodeURIComponent(orderId)}/status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentStatus: 'PAID' })
+        }).catch(err => console.error('Failed to sync payment status to DB:', err));
       },
 
       updateOrderStatus: (orderId, status) => {

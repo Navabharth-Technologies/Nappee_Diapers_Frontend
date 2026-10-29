@@ -13,7 +13,7 @@ export default function OwnerOrderDetailScreen() {
 
   const {
     orders, customers, deliveryPartners, coupons,
-    updateOrderStatus, assignDeliveryPartner, demoFastForward
+    updateOrderStatus, assignDeliveryPartner, demoFastForward, markOrderAsPaid
   } = useStore();
 
   const [partnerModalVisible, setPartnerModalVisible] = useState(false);
@@ -142,7 +142,17 @@ export default function OwnerOrderDetailScreen() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Order Management</Text>
 
-          {['ORDER_PLACED', 'PAYMENT_CONFIRMED', 'ORDER_CONFIRMED', 'PROCESSING'].includes(order.status) && (
+          {order.paymentStatus === 'PENDING' && (
+            <TouchableOpacity 
+              style={[styles.actionBtn, { backgroundColor: '#16a34a', marginBottom: 12 }]} 
+              onPress={() => markOrderAsPaid(order.id, 'MANUAL_VERIFY')}
+            >
+              <CheckCircle size={20} color={colors.white} style={{ marginRight: 8 }} />
+              <Text style={styles.actionBtnText}>Confirm Payment (Mark as PAID)</Text>
+            </TouchableOpacity>
+          )}
+
+          {['ORDER_PLACED', 'PAYMENT_CONFIRMED', 'ORDER_CONFIRMED', 'PROCESSING', 'PENDING_PAYMENT'].includes(order.status) && (
             <TouchableOpacity style={styles.actionBtn} onPress={() => updateOrderStatus(order.id, 'PREPARING')}>
               <Text style={styles.actionBtnText}>Start Preparing Order</Text>
             </TouchableOpacity>

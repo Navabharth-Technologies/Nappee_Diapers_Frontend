@@ -37,6 +37,18 @@
     "plugins": [
       "expo-router",
       "expo-status-bar"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "00efc662-1893-49d0-bf09-f4d2e6cada77"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/00efc662-1893-49d0-bf09-f4d2e6cada77"
+    }
   }
 }

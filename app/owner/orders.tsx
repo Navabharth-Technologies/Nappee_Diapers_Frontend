@@ -1,18 +1,37 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, RefreshControl } from 'react-native';
 import { colors } from '../../src/theme/colors';
 import { useStore } from '../../src/store/useStore';
 import { Order } from '../../src/store/types';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Search } from 'lucide-react-native';
 
 export default function OwnerOrdersScreen() {
-  const { orders, customers } = useStore();
+  const { orders, customers, fetchOrders, fetchCustomers } = useStore();
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = React.useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'ALL' | 'PAID' | 'PENDING'>('ALL');
 
-  // Only show fully PAID orders on the dashboard
-  const validOrders = orders.filter(o => o.paymentStatus === 'PAID');
+  // Auto-fetch fresh orders from Azure whenever Owner views this screen
+  useFocusEffect(
+    useCallback(() => {
+      fetchOrders();
+      fetchCustomers();
+    }, [])
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchOrders(), fetchCustomers()]);
+    setRefreshing(false);
+  };
+
+  const validOrders = orders.filter(o => {
+    if (activeTab === 'PAID') return o.paymentStatus === 'PAID';
+    if (activeTab === 'PENDING') return o.paymentStatus === 'PENDING';
+    return true;
+  });
   
   const filteredOrders = validOrders.filter(o => 
     o.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -79,11 +98,26 @@ export default function OwnerOrdersScreen() {
         />
       </View>
 
+      <View style={styles.tabContainer}>
+        {(['ALL', 'PAID', 'PENDING'] as const).map(tab => (
+          <TouchableOpacity 
+            key={tab} 
+            style={[styles.tabButton, activeTab === tab && styles.tabButtonActive]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+              {tab === 'ALL' ? `All (${orders.length})` : tab === 'PAID' ? `Paid (${orders.filter(o => o.paymentStatus === 'PAID').length})` : `Pending (${orders.filter(o => o.paymentStatus === 'PENDING').length})`}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       <FlatList
         data={filteredOrders}
         keyExtractor={item => item.id}
         renderItem={renderOrder}
         contentContainerStyle={styles.list}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
         ListEmptyComponent={<Text style={styles.emptyText}>No orders found.</Text>}
       />
     </View>
@@ -99,11 +133,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.white,
-    margin: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 8,
+    padding: 3,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 6,
+  },
+  tabButtonActive: {
+    backgroundColor: colors.white,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  tabText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.mutedText,
+  },
+  tabTextActive: {
+    color: colors.primary,
   },
   searchInput: {
     flex: 1,
