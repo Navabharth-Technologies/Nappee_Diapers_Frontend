@@ -490,13 +490,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-    fontWeight: '600',
-    color: colors.text,
-    marginTop: 16,
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-    color: colors.mutedText,
-    marginTop: 8,
-  },
-});
