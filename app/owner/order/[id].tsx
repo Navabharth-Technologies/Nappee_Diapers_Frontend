@@ -3,8 +3,9 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'rea
 import { colors } from '../../../src/theme/colors';
 import { useStore } from '../../../src/store/useStore';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, MapPin, User, Package, Truck, Play, CheckCircle, Star, Navigation } from 'lucide-react-native';
+import { ArrowLeft, MapPin, User, Package, Truck, Play, CheckCircle, Star, Navigation, RefreshCw } from 'lucide-react-native';
 import Map from '../../../src/components/Map';
+import { getApiUrl } from '../../../src/store/useStore';
 
 export default function OwnerOrderDetailScreen() {
   const router = useRouter();
@@ -13,11 +14,31 @@ export default function OwnerOrderDetailScreen() {
 
   const {
     orders, customers, deliveryPartners, coupons,
-    updateOrderStatus, assignDeliveryPartner, demoFastForward, markOrderAsPaid
+    updateOrderStatus, assignDeliveryPartner, demoFastForward, markOrderAsPaid, fetchOrders
   } = useStore();
 
   const [partnerModalVisible, setPartnerModalVisible] = useState(false);
   const [mapModalVisible, setMapModalVisible] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+
+  const handleVerifyRazorpay = async (currentOrderId: string) => {
+    setVerifying(true);
+    try {
+      const res = await fetch(`${getApiUrl()}/api/payments/${encodeURIComponent(currentOrderId)}/verify-razorpay`, { method: 'POST' });
+      const data = await res.json();
+      await fetchOrders();
+      if (data.synced || data.paymentStatus === 'PAID') {
+        alert('Payment Verified! Order marked as PAID.');
+      } else {
+        alert(`Live Razorpay status: ${data.paymentStatus || 'Pending'}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to check Razorpay payment status.');
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const order = orders.find(o => o.id === orderId);
   if (!order) {
@@ -143,13 +164,24 @@ export default function OwnerOrderDetailScreen() {
           <Text style={styles.sectionTitle}>Order Management</Text>
 
           {order.paymentStatus === 'PENDING' && (
-            <TouchableOpacity 
-              style={[styles.actionBtn, { backgroundColor: '#16a34a', marginBottom: 12 }]} 
-              onPress={() => markOrderAsPaid(order.id, 'MANUAL_VERIFY')}
-            >
-              <CheckCircle size={20} color={colors.white} style={{ marginRight: 8 }} />
-              <Text style={styles.actionBtnText}>Confirm Payment (Mark as PAID)</Text>
-            </TouchableOpacity>
+            <View style={{ marginBottom: 12 }}>
+              <TouchableOpacity 
+                style={[styles.actionBtn, { backgroundColor: '#2563eb', marginBottom: 8 }]} 
+                onPress={() => handleVerifyRazorpay(order.id)}
+                disabled={verifying}
+              >
+                <RefreshCw size={20} color={colors.white} style={{ marginRight: 8 }} />
+                <Text style={styles.actionBtnText}>{verifying ? 'Checking Razorpay...' : 'Check Live Razorpay Status'}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionBtn, { backgroundColor: '#16a34a' }]} 
+                onPress={() => markOrderAsPaid(order.id, 'MANUAL_VERIFY')}
+              >
+                <CheckCircle size={20} color={colors.white} style={{ marginRight: 8 }} />
+                <Text style={styles.actionBtnText}>Confirm Payment Manually (Mark as PAID)</Text>
+              </TouchableOpacity>
+            </View>
           )}
 
           {['ORDER_PLACED', 'PAYMENT_CONFIRMED', 'ORDER_CONFIRMED', 'PROCESSING', 'PENDING_PAYMENT'].includes(order.status) && (
@@ -164,8 +196,8 @@ export default function OwnerOrderDetailScreen() {
             </TouchableOpacity>
           )}
 
-          {['PACKED', 'ASSIGNED'].includes(order.status) && (
-            <View>
+          {(['PACKED', 'ASSIGNED', 'PROCESSING', 'ORDER_CONFIRMED', 'PAYMENT_CONFIRMED', 'PREPARING'].includes(order.status) || order.paymentStatus === 'PAID') && order.status !== 'DELIVERED' && order.status !== 'OUT_FOR_DELIVERY' && (
+            <View style={{ marginTop: 8 }}>
               <TouchableOpacity style={styles.actionBtnSecondary} onPress={() => setPartnerModalVisible(true)}>
                 <Truck size={20} color={colors.primary} />
                 <Text style={[styles.actionBtnText, { color: colors.primary, marginLeft: 8 }]}>

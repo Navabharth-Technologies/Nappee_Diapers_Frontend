@@ -29,8 +29,8 @@ export default function OwnerDashboardScreen() {
   const paidOrders = orders.filter(o => o.paymentStatus === 'PAID');
 
   const totalSales = paidOrders.reduce((sum, o) => sum + o.total, 0);
-  const openOrders = validOrders.filter(o => ['ORDER_PLACED', 'PAYMENT_CONFIRMED', 'ORDER_CONFIRMED', 'PREPARING', 'PACKED', 'PENDING_PAYMENT'].includes(o.status)).length;
-  const unassignedDeliveries = validOrders.filter(o => o.status === 'PACKED' && !o.deliveryPartnerId).length;
+  const openOrders = validOrders.filter(o => ['ORDER_PLACED', 'PAYMENT_CONFIRMED', 'ORDER_CONFIRMED', 'PREPARING', 'PACKED', 'PROCESSING', 'PENDING_PAYMENT'].includes(o.status)).length;
+  const unassignedDeliveries = validOrders.filter(o => (o.paymentStatus === 'PAID' || ['PACKED', 'PROCESSING', 'ORDER_CONFIRMED', 'PREPARING'].includes(o.status)) && !o.deliveryPartnerId && o.status !== 'DELIVERED').length;
   const lowStockItems = products.filter(p => p.stockStatus === 'LOW_STOCK' || p.stockStatus === 'OUT_OF_STOCK').length;
 
   return (

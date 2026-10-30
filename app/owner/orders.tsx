@@ -4,7 +4,7 @@ import { colors } from '../../src/theme/colors';
 import { useStore } from '../../src/store/useStore';
 import { Order } from '../../src/store/types';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Search } from 'lucide-react-native';
+import { Search, RefreshCw } from 'lucide-react-native';
 
 export default function OwnerOrdersScreen() {
   const { orders, customers, fetchOrders, fetchCustomers } = useStore();
@@ -88,14 +88,23 @@ export default function OwnerOrdersScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.searchContainer}>
-        <Search size={20} color={colors.mutedText} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search by Order ID or Customer Name"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
+      <View style={styles.topBar}>
+        <View style={styles.searchContainer}>
+          <Search size={20} color={colors.mutedText} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by Order ID or Customer Name"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+        <TouchableOpacity 
+          style={styles.syncButton} 
+          onPress={onRefresh}
+          disabled={refreshing}
+        >
+          <RefreshCw size={18} color={colors.white} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.tabContainer}>
@@ -129,17 +138,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  searchContainer: {
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.white,
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 8,
+    gap: 8,
+  },
+  searchContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  syncButton: {
+    backgroundColor: colors.primary,
+    padding: 12,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   tabContainer: {
     flexDirection: 'row',
