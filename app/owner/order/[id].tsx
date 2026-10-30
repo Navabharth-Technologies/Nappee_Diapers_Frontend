@@ -252,17 +252,16 @@ export default function OwnerOrderDetailScreen() {
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.modalSubtitle}>All Delivery Partners</Text>
+            <Text style={styles.modalSubtitle}>Select Delivery Partner (Multiple Orders Allowed)</Text>
             {availablePartners.length === 0 ? (
-              <Text style={styles.noPartnersText}>No partners found.</Text>
+              <Text style={styles.noPartnersText}>No delivery partners found.</Text>
             ) : (
               availablePartners.map(dp => {
-                const isAvailable = dp.status === 'AVAILABLE';
+                const partnerActiveCount = orders.filter(o => o.deliveryPartnerId === dp.id && (o.status === 'ASSIGNED' || o.status === 'OUT_FOR_DELIVERY')).length;
                 return (
                   <TouchableOpacity
                     key={dp.id}
-                    style={[styles.partnerOption, !isAvailable && { opacity: 0.5 }]}
-                    disabled={!isAvailable}
+                    style={styles.partnerOption}
                     onPress={() => {
                       assignDeliveryPartner(order.id, dp.id);
                       setPartnerModalVisible(false);
@@ -271,11 +270,13 @@ export default function OwnerOrderDetailScreen() {
                     <View>
                       <Text style={styles.partnerName}>{dp.name}</Text>
                       <Text style={styles.partnerPhone}>{dp.phone}</Text>
-                      {!isAvailable && <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>Offline / Unavailable</Text>}
+                      <Text style={{ color: colors.primary, fontSize: 12, marginTop: 4, fontWeight: '500' }}>
+                        {partnerActiveCount === 0 ? '✓ Ready for Orders' : `🚚 ${partnerActiveCount} Active Order${partnerActiveCount > 1 ? 's' : ''} in Queue`}
+                      </Text>
                     </View>
                     <View style={styles.ratingBadge}>
                       <Star size={12} color={colors.darkPurple} fill={colors.darkPurple} />
-                      <Text style={styles.ratingText}>{dp.rating}</Text>
+                      <Text style={styles.ratingText}>{dp.rating || 5.0}</Text>
                     </View>
                   </TouchableOpacity>
                 );

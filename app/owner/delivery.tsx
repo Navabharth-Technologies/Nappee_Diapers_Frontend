@@ -1,20 +1,34 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, Platform } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, Platform, RefreshControl } from 'react-native';
 import { colors } from '../../src/theme/colors';
 import { useStore } from '../../src/store/useStore';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Truck, Star, Phone, ArrowLeft, CheckCircle2, Plus, Trash2 } from 'lucide-react-native';
 import { DeliveryPartner } from '../../src/store/types';
 
 export default function OwnerDeliveryScreen() {
   const router = useRouter();
-  const { deliveryPartners, addDeliveryPartner, removeDeliveryPartner } = useStore();
-  const [modalVisible, setModalVisible] = React.useState(false);
-  const [deleteModalVisible, setDeleteModalVisible] = React.useState(false);
-  const [partnerToDelete, setPartnerToDelete] = React.useState<DeliveryPartner | null>(null);
+  const { deliveryPartners, orders, fetchOrders, fetchDeliveryPartners, addDeliveryPartner, removeDeliveryPartner } = useStore();
+  const [modalVisible, setModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [partnerToDelete, setPartnerToDelete] = useState<DeliveryPartner | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   
-  const [newName, setNewName] = React.useState('');
-  const [newPhone, setNewPhone] = React.useState('');
+  const [newName, setNewName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchOrders();
+      fetchDeliveryPartners();
+    }, [])
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchOrders(), fetchDeliveryPartners()]);
+    setRefreshing(false);
+  };
 
   const handleNameChange = (text: string) => {
     let filtered = text.replace(/[^a-zA-Z\s]/g, '');
@@ -78,7 +92,8 @@ export default function OwnerDeliveryScreen() {
   };
 
   const renderPartner = ({ item }: { item: DeliveryPartner }) => {
-    const statusColor = getStatusColor(item.status);
+    const activeCount = orders.filter(o => o.deliveryPartnerId === item.id && (o.status === 'ASSIGNED' || o.status === 'OUT_FOR_DELIVERY')).length;
+    const completedCount = orders.filter(o => o.deliveryPartnerId === item.id && o.status === 'DELIVERED').length;
     
     return (
       <View style={styles.card}>
@@ -96,9 +111,9 @@ export default function OwnerDeliveryScreen() {
             </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={[styles.statusBadge, { backgroundColor: `${statusColor}15` }]}>
-              <Text style={[styles.statusText, { color: statusColor }]}>
-                {item.status.replace(/_/g, ' ')}
+            <View style={[styles.statusBadge, { backgroundColor: activeCount > 0 ? '#fef3c7' : '#dcfce7' }]}>
+              <Text style={[styles.statusText, { color: activeCount > 0 ? '#b45309' : '#166534' }]}>
+                {activeCount > 0 ? `${activeCount} in Delivery` : 'Ready to Assign'}
               </Text>
             </View>
             <TouchableOpacity 
@@ -114,15 +129,15 @@ export default function OwnerDeliveryScreen() {
 
         <View style={styles.statsContainer}>
           <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Active Orders</Text>
-            <Text style={[styles.statValue, { color: item.activeOrders > 0 ? colors.primary : colors.text }]}>
-              {item.activeOrders}
+            <Text style={styles.statLabel}>Active Queue</Text>
+            <Text style={[styles.statValue, { color: activeCount > 0 ? colors.primary : colors.text }]}>
+              {activeCount}
             </Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Completed</Text>
-            <Text style={styles.statValue}>{item.completedOrders}</Text>
+            <Text style={styles.statLabel}>Delivered</Text>
+            <Text style={[styles.statValue, { color: '#166534' }]}>{completedCount}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBox}>
@@ -154,6 +169,7 @@ export default function OwnerDeliveryScreen() {
         keyExtractor={item => item.id}
         renderItem={renderPartner}
         contentContainerStyle={styles.list}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
       />
 
       <Modal visible={modalVisible} transparent animationType="slide">

@@ -1,14 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, RefreshControl } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { colors } from '../../src/theme/colors';
 import { useStore } from '../../src/store/useStore';
-import { Package, User, LogOut, CheckCircle, Navigation, MapPin } from 'lucide-react-native';
+import { Package, User, LogOut, CheckCircle, Navigation, MapPin, Truck, ChevronRight } from 'lucide-react-native';
 
 export default function DeliveryDashboard() {
   const router = useRouter();
-  const { currentDeliveryPartner, logoutDeliveryPartner, togglePartnerStatus, orders, customers } = useStore();
+  const { currentDeliveryPartner, logoutDeliveryPartner, orders, customers, fetchOrders, fetchCustomers } = useStore();
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'COMPLETED'>('ACTIVE');
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (!currentDeliveryPartner) {
@@ -16,54 +17,80 @@ export default function DeliveryDashboard() {
     }
   }, [currentDeliveryPartner]);
 
+  // Auto-fetch latest assigned orders whenever screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      fetchOrders();
+      fetchCustomers();
+    }, [])
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchOrders(), fetchCustomers()]);
+    setRefreshing(false);
+  };
+
   if (!currentDeliveryPartner) return null;
 
-  // Active deliveries: orders assigned to this partner that are either ASSIGNED or OUT_FOR_DELIVERY
-  const activeOrders = orders.filter(
-    o => o.deliveryPartnerId === currentDeliveryPartner.id && 
-         (o.status === 'ASSIGNED' || o.status === 'OUT_FOR_DELIVERY')
-  );
+  // Active deliveries sorted chronologically (in order owner assigned)
+  const activeOrders = orders
+    .filter(
+      o => o.deliveryPartnerId === currentDeliveryPartner.id && 
+           (o.status === 'ASSIGNED' || o.status === 'OUT_FOR_DELIVERY')
+    )
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  const completedOrders = orders.filter(
-    o => o.deliveryPartnerId === currentDeliveryPartner.id && 
-         o.status === 'DELIVERED'
-  );
+  // Completed deliveries
+  const completedOrders = orders
+    .filter(
+      o => o.deliveryPartnerId === currentDeliveryPartner.id && 
+           o.status === 'DELIVERED'
+    )
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  const completedOrdersCount = currentDeliveryPartner.completedOrders || 0;
-  
   const handleLogout = () => {
     logoutDeliveryPartner();
     router.replace('/delivery/login');
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'AVAILABLE': return colors.primary;
-      case 'ON_DELIVERY': return '#F59E0B';
-      case 'ASSIGNED': return '#F59E0B';
-      case 'OFFLINE': return colors.mutedText;
-      default: return colors.mutedText;
-    }
-  };
-
-  const renderOrderItem = ({ item }: { item: any }) => {
+  const renderOrderItem = ({ item, index }: { item: any; index: number }) => {
+    const isCurrent = activeTab === 'ACTIVE' && index === 0;
     const customer = customers.find(c => c.id === item.customerId);
-    const address = customer?.addresses.find(a => a.id === item.addressId);
+    const address = customer?.addresses?.find((a: any) => a.id === item.addressId) || item.deliveryAddress;
 
     return (
       <TouchableOpacity 
-        style={styles.orderCard}
+        style={[
+          styles.orderCard,
+          isCurrent && styles.currentOrderCard
+        ]}
         onPress={() => router.push(`/delivery/order/${item.id.replace('#', '')}`)}
       >
+        {isCurrent && (
+          <View style={styles.currentDeliveryBanner}>
+            <Truck size={14} color={colors.white} />
+            <Text style={styles.currentDeliveryText}>CURRENT DELIVERY • DELIVER FIRST</Text>
+          </View>
+        )}
+
         <View style={styles.orderHeader}>
-          <Text style={styles.orderId}>{item.id}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {activeTab === 'ACTIVE' && !isCurrent && (
+              <View style={styles.queueBadge}>
+                <Text style={styles.queueBadgeText}>#{index + 1} in Queue</Text>
+              </View>
+            )}
+            <Text style={[styles.orderId, isCurrent && { color: colors.primary }]}>{item.id}</Text>
+          </View>
+          
           <View style={[
             styles.statusBadge, 
-            { backgroundColor: item.status === 'OUT_FOR_DELIVERY' ? '#F59E0B' : colors.softPurple }
+            { backgroundColor: item.status === 'DELIVERED' ? '#dcfce7' : item.status === 'OUT_FOR_DELIVERY' ? '#F59E0B' : colors.softPurple }
           ]}>
             <Text style={[
               styles.statusText,
-              { color: item.status === 'OUT_FOR_DELIVERY' ? colors.white : colors.primary }
+              { color: item.status === 'DELIVERED' ? '#166534' : item.status === 'OUT_FOR_DELIVERY' ? colors.white : colors.primary }
             ]}>
               {item.status.replace(/_/g, ' ')}
             </Text>
@@ -74,20 +101,23 @@ export default function DeliveryDashboard() {
           <View style={styles.detailRow}>
             <User size={16} color={colors.mutedText} />
             <Text style={styles.detailText}>{customer?.name || 'Customer'}</Text>
+            {customer?.phone && <Text style={styles.detailSubtext}>({customer.phone})</Text>}
           </View>
           
           <View style={styles.detailRow}>
-            <MapPin size={16} color={colors.mutedText} />
-            <Text style={styles.detailText} numberOfLines={1}>
-              {address ? `${address.street}, ${address.city}` : 'No address'}
+            <MapPin size={16} color={isCurrent ? colors.primary : colors.mutedText} />
+            <Text style={[styles.detailText, isCurrent && { fontWeight: '600' }]} numberOfLines={2}>
+              {address ? `${address.street ? address.street + ', ' : ''}${address.area ? address.area + ', ' : ''}${address.city || ''} ${address.pincode ? '- ' + address.pincode : ''}` : 'Customer delivery address'}
             </Text>
           </View>
         </View>
 
         <View style={styles.orderFooter}>
-          <Text style={styles.itemCount}>{item.items.reduce((acc: number, i: any) => acc + i.quantity, 0)} Items</Text>
-          <View style={styles.actionButton}>
-            <Text style={styles.actionButtonText}>View Details</Text>
+          <Text style={styles.itemCount}>{item.items?.reduce((acc: number, i: any) => acc + i.quantity, 0) || 1} Items • ₹{item.total}</Text>
+          <View style={[styles.actionButton, isCurrent && styles.actionButtonHighlight]}>
+            <Text style={[styles.actionButtonText, isCurrent && styles.actionButtonHighlightText]}>
+              {isCurrent ? 'Deliver Now →' : 'View Details'}
+            </Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -103,15 +133,10 @@ export default function DeliveryDashboard() {
           </View>
           <View>
             <Text style={styles.welcomeText}>Hello, {currentDeliveryPartner.name}</Text>
-            <TouchableOpacity 
-              style={[styles.statusToggle, { borderColor: getStatusColor(currentDeliveryPartner.status) }]}
-              onPress={togglePartnerStatus}
-            >
-              <View style={[styles.statusDot, { backgroundColor: getStatusColor(currentDeliveryPartner.status) }]} />
-              <Text style={[styles.statusToggleText, { color: getStatusColor(currentDeliveryPartner.status) }]}>
-                {currentDeliveryPartner.status}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.activeBadge}>
+              <View style={styles.activeDot} />
+              <Text style={styles.activeBadgeText}>Ready & Active • {currentDeliveryPartner.phone}</Text>
+            </View>
           </View>
         </View>
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -123,17 +148,17 @@ export default function DeliveryDashboard() {
         <View style={styles.kpiCard}>
           <Package size={24} color={colors.primary} />
           <Text style={styles.kpiValue}>{activeOrders.length}</Text>
-          <Text style={styles.kpiLabel}>Active</Text>
+          <Text style={styles.kpiLabel}>Active Queue</Text>
         </View>
         <View style={styles.kpiCard}>
-          <CheckCircle size={24} color={colors.primary} />
-          <Text style={styles.kpiValue}>{completedOrdersCount}</Text>
-          <Text style={styles.kpiLabel}>Completed</Text>
+          <CheckCircle size={24} color="#166534" />
+          <Text style={[styles.kpiValue, { color: '#166534' }]}>{completedOrders.length}</Text>
+          <Text style={styles.kpiLabel}>Delivered</Text>
         </View>
         <View style={styles.kpiCard}>
-          <Navigation size={24} color={colors.primary} />
-          <Text style={styles.kpiValue}>4.9</Text>
-          <Text style={styles.kpiLabel}>Rating</Text>
+          <Truck size={24} color={colors.primary} />
+          <Text style={styles.kpiValue}>{activeOrders.length + completedOrders.length}</Text>
+          <Text style={styles.kpiLabel}>Total Orders</Text>
         </View>
       </View>
 
@@ -143,22 +168,27 @@ export default function DeliveryDashboard() {
             style={[styles.tabBtn, activeTab === 'ACTIVE' && styles.activeTabBtn]}
             onPress={() => setActiveTab('ACTIVE')}
           >
-            <Text style={[styles.tabText, activeTab === 'ACTIVE' && styles.activeTabText]}>Active</Text>
+            <Text style={[styles.tabText, activeTab === 'ACTIVE' && styles.activeTabText]}>
+              Active Queue ({activeOrders.length})
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.tabBtn, activeTab === 'COMPLETED' && styles.activeTabBtn]}
             onPress={() => setActiveTab('COMPLETED')}
           >
-            <Text style={[styles.tabText, activeTab === 'COMPLETED' && styles.activeTabText]}>Completed Today</Text>
+            <Text style={[styles.tabText, activeTab === 'COMPLETED' && styles.activeTabText]}>
+              Delivered ({completedOrders.length})
+            </Text>
           </TouchableOpacity>
         </View>
 
         {activeTab === 'ACTIVE' ? (
           activeOrders.length === 0 ? (
             <View style={styles.emptyState}>
-              <Package size={48} color={colors.border} />
-              <Text style={styles.emptyStateText}>No active deliveries at the moment.</Text>
-              <Text style={styles.emptyStateSubtext}>Take a break or check back later!</Text>
+              <CheckCircle size={48} color="#166534" />
+              <Text style={styles.emptyStateTitle}>All Deliveries Completed! 🎉</Text>
+              <Text style={styles.emptyStateText}>You have completed all assigned orders.</Text>
+              <Text style={styles.emptyStateSubtext}>New orders assigned by the owner will appear here automatically.</Text>
             </View>
           ) : (
             <FlatList
@@ -167,14 +197,15 @@ export default function DeliveryDashboard() {
               keyExtractor={item => item.id}
               contentContainerStyle={styles.listContainer}
               showsVerticalScrollIndicator={false}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
             />
           )
         ) : (
           completedOrders.length === 0 ? (
             <View style={styles.emptyState}>
-              <CheckCircle size={48} color={colors.border} />
-              <Text style={styles.emptyStateText}>No completed deliveries yet.</Text>
-              <Text style={styles.emptyStateSubtext}>Keep up the good work!</Text>
+              <Package size={48} color={colors.border} />
+              <Text style={styles.emptyStateText}>No delivered orders yet.</Text>
+              <Text style={styles.emptyStateSubtext}>Completed orders will be listed here.</Text>
             </View>
           ) : (
             <FlatList
@@ -183,6 +214,7 @@ export default function DeliveryDashboard() {
               keyExtractor={item => item.id}
               contentContainerStyle={styles.listContainer}
               showsVerticalScrollIndicator={false}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
             />
           )
         )}
@@ -229,24 +261,26 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 4,
   },
-  statusToggle: {
+  activeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 12,
-    borderWidth: 1,
+    backgroundColor: '#dcfce7',
     alignSelf: 'flex-start',
   },
-  statusDot: {
-    width: 8,
-    height: 8,
+  activeDot: {
+    width: 7,
+    height: 7,
     borderRadius: 4,
+    backgroundColor: '#16a34a',
   },
-  statusToggleText: {
-    fontSize: 12,
+  activeBadgeText: {
+    fontSize: 11,
     fontWeight: '600',
+    color: '#166534',
   },
   logoutButton: {
     padding: 8,
@@ -304,7 +338,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.softPurple,
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.mutedText,
   },
@@ -312,7 +346,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   listContainer: {
-    paddingBottom: 20,
+    paddingBottom: 24,
     gap: 12,
   },
   orderCard: {
@@ -321,6 +355,45 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  currentOrderCard: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+    backgroundColor: '#FAF5FF',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  currentDeliveryBanner: {
+    backgroundColor: colors.primary,
+    marginHorizontal: -16,
+    marginTop: -16,
+    marginBottom: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  currentDeliveryText: {
+    color: colors.white,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  queueBadge: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  queueBadgeText: {
+    color: colors.mutedText,
+    fontSize: 11,
+    fontWeight: '700',
   },
   orderHeader: {
     flexDirection: 'row',
@@ -329,7 +402,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   orderId: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: colors.text,
   },
@@ -352,9 +425,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   detailText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text,
     flex: 1,
+  },
+  detailSubtext: {
+    fontSize: 12,
+    color: colors.mutedText,
   },
   orderFooter: {
     flexDirection: 'row',
@@ -365,29 +442,54 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   itemCount: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.mutedText,
     fontWeight: '500',
   },
   actionButton: {
     backgroundColor: colors.softPurple,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
   },
   actionButtonText: {
     color: colors.primary,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
+  },
+  actionButtonHighlight: {
+    backgroundColor: colors.primary,
+  },
+  actionButtonHighlightText: {
+    color: colors.white,
+    fontWeight: '700',
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingTop: 40,
+    paddingHorizontal: 20,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#166534',
+    marginTop: 12,
+    marginBottom: 6,
   },
   emptyStateText: {
-    fontSize: 16,
+    fontSize: 14,
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  emptyStateSubtext: {
+    fontSize: 12,
+    color: colors.mutedText,
+    textAlign: 'center',
+  },
+});
     fontWeight: '600',
     color: colors.text,
     marginTop: 16,

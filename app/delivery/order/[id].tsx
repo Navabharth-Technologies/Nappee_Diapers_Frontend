@@ -9,7 +9,7 @@ import Map from '../../../src/components/Map';
 export default function DeliveryOrderDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { orders, customers, updateOrderStatus, currentDeliveryPartner } = useStore();
+  const { orders, customers, updateOrderStatus, currentDeliveryPartner, fetchOrders } = useStore();
   const [isProcessing, setIsProcessing] = useState(false);
 
   const orderId = typeof id === 'string' && id.startsWith('#') ? id : `#${id}`;
@@ -19,19 +19,31 @@ export default function DeliveryOrderDetail() {
   const customer = customers.find(c => c.id === order.customerId);
   const address = order.deliveryAddress || customer?.addresses.find(a => a.id === order.addressId);
 
-  const handleUpdateStatus = (newStatus: 'OUT_FOR_DELIVERY' | 'DELIVERED') => {
+  const handleUpdateStatus = async (newStatus: 'OUT_FOR_DELIVERY' | 'DELIVERED') => {
     setIsProcessing(true);
-    // Simulate network delay for demo
-    setTimeout(() => {
-      updateOrderStatus(order.id, newStatus);
-      setIsProcessing(false);
-      
-      if (newStatus === 'DELIVERED') {
-        Alert.alert('Success', 'Order delivered successfully!', [
-          { text: 'OK', onPress: () => router.replace('/delivery') }
-        ]);
-      }
-    }, 1000);
+    updateOrderStatus(order.id, newStatus);
+    try {
+      await fetchOrders();
+    } catch (e) {
+      console.error(e);
+    }
+    setIsProcessing(false);
+    
+    if (newStatus === 'DELIVERED') {
+      const remaining = orders.filter(
+        o => o.deliveryPartnerId === currentDeliveryPartner.id && 
+             o.id !== order.id && 
+             (o.status === 'ASSIGNED' || o.status === 'OUT_FOR_DELIVERY')
+      ).length;
+
+      const alertMsg = remaining > 0 
+        ? `Order marked as DELIVERED!\n\nYou have ${remaining} more order${remaining > 1 ? 's' : ''} next in your queue to deliver.`
+        : 'Order marked as DELIVERED!\n\nAll your assigned deliveries are now complete! Great job! 🎉';
+
+      Alert.alert('Delivery Success', alertMsg, [
+        { text: 'Proceed', onPress: () => router.replace('/delivery') }
+      ]);
+    }
   };
 
   return (

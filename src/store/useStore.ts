@@ -250,13 +250,7 @@ export const useStore = create<AppState>()(
 
       togglePartnerStatus: () => set((state) => {
         if (!state.currentDeliveryPartner) return state;
-        const currentStatus = state.currentDeliveryPartner.status;
-        let newStatus: 'AVAILABLE' | 'OFFLINE' | 'ON_DELIVERY' | 'ASSIGNED' = currentStatus;
-        
-        if (currentStatus === 'AVAILABLE') newStatus = 'OFFLINE';
-        else if (currentStatus === 'OFFLINE') newStatus = 'AVAILABLE';
-        
-        const updatedPartner = { ...state.currentDeliveryPartner, status: newStatus };
+        const updatedPartner = { ...state.currentDeliveryPartner, status: 'AVAILABLE' as const };
         return {
           currentDeliveryPartner: updatedPartner,
           deliveryPartners: state.deliveryPartners.map(dp => dp.id === updatedPartner.id ? updatedPartner : dp)
@@ -542,17 +536,17 @@ export const useStore = create<AppState>()(
 
         if (status === 'OUT_FOR_DELIVERY' && order.deliveryPartnerId) {
           updatedPartners = state.deliveryPartners.map(dp => 
-            dp.id === order.deliveryPartnerId ? { ...dp, status: 'ON_DELIVERY' } : dp
+            dp.id === order.deliveryPartnerId ? { ...dp, status: 'AVAILABLE' } : dp
           );
           if (updatedCurrentPartner?.id === order.deliveryPartnerId) {
-            updatedCurrentPartner = { ...updatedCurrentPartner, status: 'ON_DELIVERY' };
+            updatedCurrentPartner = { ...updatedCurrentPartner, status: 'AVAILABLE' };
           }
         } else if (status === 'DELIVERED' && order.deliveryPartnerId) {
           updatedPartners = state.deliveryPartners.map(dp => 
-            dp.id === order.deliveryPartnerId ? { ...dp, status: 'AVAILABLE', activeOrders: Math.max(0, dp.activeOrders - 1), completedOrders: dp.completedOrders + 1 } : dp
+            dp.id === order.deliveryPartnerId ? { ...dp, status: 'AVAILABLE', activeOrders: Math.max(0, (dp.activeOrders || 1) - 1), completedOrders: (dp.completedOrders || 0) + 1 } : dp
           );
           if (updatedCurrentPartner?.id === order.deliveryPartnerId) {
-            updatedCurrentPartner = { ...updatedCurrentPartner, status: 'AVAILABLE', activeOrders: Math.max(0, updatedCurrentPartner.activeOrders - 1), completedOrders: updatedCurrentPartner.completedOrders + 1 };
+            updatedCurrentPartner = { ...updatedCurrentPartner, status: 'AVAILABLE', activeOrders: Math.max(0, (updatedCurrentPartner.activeOrders || 1) - 1), completedOrders: (updatedCurrentPartner.completedOrders || 0) + 1 };
           }
         }
 
@@ -644,7 +638,7 @@ export const useStore = create<AppState>()(
               trackingEvents: [...o.trackingEvents, newEvent],
               items: o.items.map(i => ({ ...i, itemStatus: 'ASSIGNED' }))
             } : o),
-            deliveryPartners: state.deliveryPartners.map(dp => dp.id === partnerId ? { ...dp, status: 'ASSIGNED', activeOrders: dp.activeOrders + 1 } : dp)
+            deliveryPartners: state.deliveryPartners.map(dp => dp.id === partnerId ? { ...dp, status: 'AVAILABLE', activeOrders: (dp.activeOrders || 0) + 1 } : dp)
           };
         });
 
@@ -841,14 +835,19 @@ export const useStore = create<AppState>()(
         try {
           const response = await fetch(getApiUrl(get().appStoreType) + '/api/delivery-partners');
           const data = await response.json();
-          // Map DB schema to frontend schema
-          const mappedPartners = data.map((dp: any) => ({
-            ...dp,
-            status: dp.availabilityStatus || 'AVAILABLE',
-            activeOrders: dp.activeOrders || 0,
-            completedOrders: dp.completedOrders || 0,
-            rating: dp.rating || 5.0
-          }));
+          const stateOrders = get().orders;
+          // Map DB schema to frontend schema with real live order counts
+          const mappedPartners = data.map((dp: any) => {
+            const activeCount = stateOrders.filter(o => o.deliveryPartnerId === dp.id && (o.status === 'ASSIGNED' || o.status === 'OUT_FOR_DELIVERY')).length;
+            const completedCount = stateOrders.filter(o => o.deliveryPartnerId === dp.id && o.status === 'DELIVERED').length;
+            return {
+              ...dp,
+              status: 'AVAILABLE' as const,
+              activeOrders: activeCount,
+              completedOrders: completedCount,
+              rating: dp.rating || 5.0
+            };
+          });
           set({ deliveryPartners: mappedPartners });
         } catch (error) {
           console.error("Failed to fetch delivery partners from DB:", error);
