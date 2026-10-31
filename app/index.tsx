@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '../src/theme/colors';
 import { useStore } from '../src/store/useStore';
+import { ShieldCheck } from 'lucide-react-native';
 
 export default function RoleSelectionScreen() {
   const router = useRouter();
@@ -53,6 +54,16 @@ export default function RoleSelectionScreen() {
           >
             <Text style={styles.buttonTextPrimary}>Continue as Delivery Partner</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.legalButton} 
+            onPress={() => {
+              router.push('/legal');
+            }}
+          >
+            <ShieldCheck size={16} color={colors.primary} />
+            <Text style={styles.legalButtonText}>Privacy Policy, Terms & App Info</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -72,29 +83,17 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 60,
+    marginBottom: 40,
   },
   iconContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.darkPurple,
-    letterSpacing: 1,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: colors.mutedText,
-    fontStyle: 'italic',
+    marginBottom: 10,
   },
   buttonContainer: {
     width: '100%',
     maxWidth: 400,
-    gap: 16,
+    gap: 14,
   },
   buttonPrimary: {
     backgroundColor: colors.primary,
@@ -111,5 +110,22 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 16,
     fontWeight: '600',
-  }
+  },
+  legalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    marginTop: 6,
+    borderRadius: 10,
+    backgroundColor: '#FDF2F8',
+    borderWidth: 1,
+    borderColor: '#FBCFE8',
+  },
+  legalButtonText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
 });

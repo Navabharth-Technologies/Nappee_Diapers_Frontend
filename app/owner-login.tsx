@@ -104,6 +104,13 @@ export default function OwnerLoginScreen() {
               <Text style={styles.buttonText}>Login</Text>
             )}
           </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.legalLink} 
+            onPress={() => router.push('/legal')}
+          >
+            <Text style={styles.legalText}>Privacy Policy & Terms</Text>
+          </TouchableOpacity>
         </View>
       </View>
       </KeyboardAvoidingView>
@@ -198,5 +205,15 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 16,
     fontWeight: '700',
-  }
+  },
+  legalLink: {
+    alignItems: 'center',
+    marginTop: 18,
+    paddingVertical: 6,
+  },
+  legalText: {
+    fontSize: 13,
+    color: colors.primary,
+    fontWeight: '600',
+  },
 });

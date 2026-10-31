@@ -4,79 +4,54 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '../../src/theme/colors';
 import { useStore } from '../../src/store/useStore';
-import { Truck, ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Truck } from 'lucide-react-native';
 
 export default function DeliveryLoginScreen() {
   const router = useRouter();
+  const { deliveryPartners } = useStore();
   const [phone, setPhone] = useState('');
-  const { loginDeliveryPartner, deliveryPartners } = useStore();
-
-  const handlePhoneChange = (text: string) => {
-    // 1. Remove non-numeric characters
-    const numbersOnly = text.replace(/[^0-9]/g, '');
-    
-    if (numbersOnly.length === 0) {
-      setPhone(numbersOnly);
-      return;
-    }
-    
-    // 2. Enforce 10 digits max
-    if (numbersOnly.length > 10) return;
-    
-    // 3. First digit must be 6, 7, 8, or 9
-    if (!/^[6-9]/.test(numbersOnly[0])) return;
-    
-    // 4. No more than 3 continuous same digits
-    if (/(.)\1{3,}/.test(numbersOnly)) return;
-    
-    setPhone(numbersOnly);
-  };
-
-  const validatePhone = (input: string) => {
-    const digits = input.replace(/\D/g, '');
-    let phone10 = digits;
-    if (digits.length === 12 && digits.startsWith('91')) {
-      phone10 = digits.slice(2);
-    }
-    
-    if (phone10.length !== 10) {
-      return { valid: false, message: 'Phone number must be exactly 10 digits.' };
-    }
-    
-    if (!/^[6-9]/.test(phone10)) {
-      return { valid: false, message: 'Phone number must start with 6, 7, 8, or 9.' };
-    }
-    
-    if (/(.)\1{3,}/.test(phone10)) {
-      return { valid: false, message: 'Invalid phone number format (more than 3 continuous same numbers).' };
-    }
-    
-    return { valid: true };
-  };
 
   const handleLogin = () => {
-    if (!phone.trim()) {
+    if (!phone || phone.trim().length === 0) {
       Alert.alert('Error', 'Please enter your phone number');
       return;
     }
 
-    const validation = validatePhone(phone);
-    if (!validation.valid) {
-      Alert.alert('Invalid Phone Number', validation.message);
-      return;
-    }
+    const cleanInputPhone = phone.replace(/[^0-9]/g, '');
 
-    const success = loginDeliveryPartner(phone.trim());
-    if (success) {
+    // Debug print
+    console.log('Attempting login with cleaned phone:', cleanInputPhone);
+    console.log('Available delivery partners in store:', deliveryPartners.map(p => ({ id: p.id, name: p.name, phone: p.phone })));
+
+    // Match delivery partner by exact phone or substring (last 10 digits)
+    const partner = deliveryPartners.find(p => {
+      const cleanPartnerPhone = p.phone ? p.phone.replace(/[^0-9]/g, '') : '';
+      return cleanPartnerPhone === cleanInputPhone || 
+             (cleanInputPhone.length >= 10 && cleanPartnerPhone.endsWith(cleanInputPhone.slice(-10))) ||
+             (cleanPartnerPhone.length >= 10 && cleanInputPhone.endsWith(cleanPartnerPhone.slice(-10)));
+    });
+
+    if (partner) {
+      useStore.setState({ currentDeliveryPartner: partner });
       router.replace('/delivery');
     } else {
-      Alert.alert('Login Failed', 'Delivery partner not found. Try +91 98765 43210 for Demo.');
+      Alert.alert(
+        'Partner Not Found', 
+        `No delivery partner registered with phone number ${phone}. Available numbers: ` + 
+        deliveryPartners.map(p => p.phone).filter(Boolean).join(', ')
+      );
     }
   };
 
+  const handlePhoneChange = (text: string) => {
+    // Only allow numbers
+    const cleanNumber = text.replace(/[^0-9]/g, '');
+    setPhone(cleanNumber);
+  };
+
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView 
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
@@ -100,7 +75,7 @@ export default function DeliveryLoginScreen() {
               placeholder="Enter phone number"
               value={phone}
               onChangeText={handlePhoneChange}
-              keyboardType="phone-diaper"
+              keyboardType="phone-pad"
               autoCapitalize="none"
               placeholderTextColor={colors.mutedText}
               maxLength={10}
@@ -110,7 +85,12 @@ export default function DeliveryLoginScreen() {
               <Text style={styles.loginButtonText}>Login</Text>
             </TouchableOpacity>
 
-
+            <TouchableOpacity 
+              style={styles.legalLink} 
+              onPress={() => router.push('/legal')}
+            >
+              <Text style={styles.legalText}>Privacy Policy & Terms</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -205,5 +185,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-
+  legalLink: {
+    alignItems: 'center',
+    marginTop: 18,
+    paddingVertical: 6,
+  },
+  legalText: {
+    fontSize: 13,
+    color: colors.primary,
+    fontWeight: '600',
+  },
 });

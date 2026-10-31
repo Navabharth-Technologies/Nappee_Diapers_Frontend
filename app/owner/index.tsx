@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } 
 import { colors } from '../../src/theme/colors';
 import { useStore } from '../../src/store/useStore';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Package, Truck, ClipboardList, AlertCircle, ChevronRight } from 'lucide-react-native';
+import { Package, Truck, ClipboardList, AlertCircle, ChevronRight, ShieldCheck } from 'lucide-react-native';
 
 export default function OwnerDashboardScreen() {
   const router = useRouter();
@@ -80,6 +80,14 @@ export default function OwnerDashboardScreen() {
           <View style={styles.actionLeft}>
             <Package size={24} color={colors.primary} />
             <Text style={styles.actionText}>Inventory Management</Text>
+          </View>
+          <ChevronRight size={20} color={colors.mutedText} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/legal')}>
+          <View style={styles.actionLeft}>
+            <ShieldCheck size={24} color={colors.primary} />
+            <Text style={styles.actionText}>Privacy Policy & Terms</Text>
           </View>
           <ChevronRight size={20} color={colors.mutedText} />
         </TouchableOpacity>
