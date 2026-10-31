@@ -30,9 +30,13 @@ import { colors } from '../src/theme/colors';
 
 type TabType = 'privacy' | 'terms' | 'about';
 
+const NAVABHARATH_LOGO_URL =
+  'https://nappee-cmfab8eyb3d9f0cf.centralindia-01.azurewebsites.net/public/images/navabharath_logo.png';
+
 export default function LegalAndPoliciesScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>('privacy');
+  const [logoSource, setLogoSource] = useState<any>({ uri: NAVABHARATH_LOGO_URL });
 
   const openUrl = (url: string) => {
     Linking.openURL(url).catch((err) => console.error('Failed to open URL:', err));
@@ -396,18 +400,7 @@ export default function LegalAndPoliciesScreen() {
               </Text>
             </View>
 
-            {/* Powered By Navabharath Technologies */}
-            <View style={styles.poweredByCard}>
-              <Text style={styles.poweredByTitle}>Powered By Navabharath Technologies</Text>
-              <Image
-                source={require('../assets/navabharath_logo.png')}
-                style={styles.navabharathLogo}
-                resizeMode="contain"
-              />
-              <Text style={styles.poweredByCompanyName}>Navabharath Technologies</Text>
-            </View>
-
-            {/* Contact & Support */}
+            {/* Customer Support & Grievances */}
             <View style={styles.policySection}>
               <Text style={styles.sectionHeading}>Customer Support & Grievances</Text>
               <Text style={styles.paragraph}>
@@ -440,6 +433,21 @@ export default function LegalAndPoliciesScreen() {
                   <Text style={styles.contactValue}>+91 919663759957</Text>
                 </View>
               </TouchableOpacity>
+            </View>
+
+            {/* Powered By Navabharath Technologies - Placed AS THE LAST CARD */}
+            <View style={styles.poweredByCard}>
+              <Text style={styles.poweredByTitle}>Powered By Navabharath Technologies</Text>
+              <Image
+                source={logoSource}
+                onError={() => {
+                  console.log('Falling back to local asset');
+                  setLogoSource(require('../assets/navabharath_logo.png'));
+                }}
+                style={styles.navabharathLogo}
+                resizeMode="contain"
+              />
+              <Text style={styles.poweredByCompanyName}>Navabharath Technologies</Text>
             </View>
 
             {/* Google Play Compliance Note */}
@@ -687,6 +695,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    marginTop: 4,
     marginBottom: 16,
     ...Platform.select({
       ios: {
@@ -709,8 +718,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   navabharathLogo: {
-    width: 180,
-    height: 120,
+    width: 220,
+    height: 140,
     marginBottom: 8,
   },
   poweredByCompanyName: {
