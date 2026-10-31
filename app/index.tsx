@@ -19,26 +19,26 @@ export default function RoleSelectionScreen() {
       <View style={styles.content}>
         <View style={styles.header}>
           <View style={styles.iconContainer}>
-            <Image 
-              source={require('../assets/logo.png')} 
-              style={{ width: 180, height: 180 }} 
+            <Image
+              source={require('../assets/logo.png')}
+              style={{ width: 180, height: 180 }}
               resizeMode="contain"
             />
           </View>
         </View>
-        
+
         <View style={styles.buttonContainer}>
-          <TouchableOpacity 
-            style={styles.buttonPrimary} 
+          <TouchableOpacity
+            style={styles.buttonPrimary}
             onPress={() => {
               router.push('/customer');
             }}
           >
             <Text style={styles.buttonTextPrimary}>Continue as Customer</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.buttonPrimary} 
+
+          <TouchableOpacity
+            style={styles.buttonPrimary}
             onPress={() => {
               router.push('/owner-login');
             }}
@@ -46,8 +46,8 @@ export default function RoleSelectionScreen() {
             <Text style={styles.buttonTextPrimary}>Continue as Owner</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.buttonPrimary} 
+          <TouchableOpacity
+            style={styles.buttonPrimary}
             onPress={() => {
               router.push('/delivery/login');
             }}
@@ -55,8 +55,8 @@ export default function RoleSelectionScreen() {
             <Text style={styles.buttonTextPrimary}>Continue as Delivery Partner</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.legalButton} 
+          <TouchableOpacity
+            style={styles.legalButton}
             onPress={() => {
               router.push('/legal');
             }}
@@ -110,22 +110,22 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 16,
     fontWeight: '600',
-  },
+},
   legalButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    marginTop: 6,
-    borderRadius: 10,
-    backgroundColor: '#FDF2F8',
-    borderWidth: 1,
-    borderColor: '#FBCFE8',
-  },
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 8,
+  paddingVertical: 12,
+  marginTop: 6,
+  borderRadius: 10,
+  backgroundColor: '#FDF2F8',
+  borderWidth: 1,
+  borderColor: '#FBCFE8',
+},
   legalButtonText: {
-    color: colors.primary,
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  color: colors.primary,
+  fontSize: 13,
+  fontWeight: '600',
+},
 });

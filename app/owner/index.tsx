@@ -34,7 +34,7 @@ export default function OwnerDashboardScreen() {
   const lowStockItems = products.filter(p => p.stockStatus === 'LOW_STOCK' || p.stockStatus === 'OUT_OF_STOCK').length;
 
   return (
-    <ScrollView 
+    <ScrollView
       style={styles.container}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
     >
@@ -59,7 +59,7 @@ export default function OwnerDashboardScreen() {
 
       <View style={styles.quickActions}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
-        
+
         <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/owner/orders')}>
           <View style={styles.actionLeft}>
             <ClipboardList size={24} color={colors.primary} />
@@ -105,7 +105,7 @@ export default function OwnerDashboardScreen() {
                 <Text style={styles.orderAmount}>₹{order.total}</Text>
               </View>
               <View style={styles.orderFooter}>
-                <Text style={styles.orderDate}>{new Date(order.date).toLocaleDateString()} {new Date(order.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</Text>
+                <Text style={styles.orderDate}>{new Date(order.date).toLocaleDateString()} {new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
                 <View style={styles.statusBadge}>
                   <Text style={styles.statusText}>{order.status.replace(/_/g, ' ')}</Text>
                 </View>

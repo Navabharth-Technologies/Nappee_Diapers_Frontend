@@ -17,19 +17,19 @@ export default function OwnerLoginScreen() {
       Alert.alert('Error', 'Please enter both username and password.');
       return;
     }
-    
+
     setLoading(true);
     try {
       const API_URL = getApiUrl('diapers');
-      
+
       const response = await fetch(`${API_URL}/api/owner/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
-      
+
       const data = await response.json();
-      
+
       if (response.ok && data.success) {
         router.replace('/owner');
       } else {
@@ -45,7 +45,7 @@ export default function OwnerLoginScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
@@ -56,63 +56,63 @@ export default function OwnerLoginScreen() {
           <Text style={styles.title}>Owner Portal</Text>
           <View style={{ width: 40 }} />
         </View>
-        
+
         <View style={styles.content}>
-        <View style={styles.card}>
-          <View style={styles.logoContainer}>
-            <Image 
-              source={require('../assets/logo.png')} 
-              style={{ width: 120, height: 120 }} 
-              resizeMode="contain"
-            />
-          </View>
-          
-          <Text style={styles.subtitle}>Sign in to access your dashboard</Text>
-          
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Username</Text>
-            <TextInput 
-              style={styles.input}
-              value={username}
-              onChangeText={setUsername}
-              placeholder="Enter username"
-              autoCapitalize="none"
-              placeholderTextColor="#9ca3af"
-            />
-          </View>
+          <View style={styles.card}>
+            <View style={styles.logoContainer}>
+              <Image
+                source={require('../assets/logo.png')}
+                style={{ width: 120, height: 120 }}
+                resizeMode="contain"
+              />
+            </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Password</Text>
-            <TextInput 
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Enter password"
-              secureTextEntry
-              placeholderTextColor="#9ca3af"
-            />
+            <Text style={styles.subtitle}>Sign in to access your dashboard</Text>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Username</Text>
+              <TextInput
+                style={styles.input}
+                value={username}
+                onChangeText={setUsername}
+                placeholder="Enter username"
+                autoCapitalize="none"
+                placeholderTextColor="#9ca3af"
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Password</Text>
+              <TextInput
+                style={styles.input}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Enter password"
+                secureTextEntry
+                placeholderTextColor="#9ca3af"
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.buttonText}>Login</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.legalLink}
+              onPress={() => router.push('/legal')}
+            >
+              <Text style={styles.legalText}>Privacy Policy & Terms</Text>
+            </TouchableOpacity>
           </View>
-
-          <TouchableOpacity 
-            style={[styles.button, loading && styles.buttonDisabled]} 
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <Text style={styles.buttonText}>Login</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.legalLink} 
-            onPress={() => router.push('/legal')}
-          >
-            <Text style={styles.legalText}>Privacy Policy & Terms</Text>
-          </TouchableOpacity>
         </View>
-      </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -205,15 +205,15 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 16,
     fontWeight: '700',
-  },
+},
   legalLink: {
-    alignItems: 'center',
-    marginTop: 18,
-    paddingVertical: 6,
-  },
+  alignItems: 'center',
+  marginTop: 18,
+  paddingVertical: 6,
+},
   legalText: {
-    fontSize: 13,
-    color: colors.primary,
-    fontWeight: '600',
-  },
+  fontSize: 13,
+  color: colors.primary,
+  fontWeight: '600',
+},
 });

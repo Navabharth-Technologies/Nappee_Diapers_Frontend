@@ -392,12 +392,19 @@ export default function LegalAndPoliciesScreen() {
                 Releaf Pads
               </Text>
               <Text style={styles.paragraph}>
-                <Text style={styles.bold}>Application ID:</Text>{' '}
-                com.tejashwini_s.Nappee_Diapers
-              </Text>
-              <Text style={styles.paragraph}>
                 <Text style={styles.bold}>Headquarters:</Text> Karnataka, India
               </Text>
+            </View>
+
+            {/* Powered By Navabharath Technologies */}
+            <View style={styles.poweredByCard}>
+              <Text style={styles.poweredByTitle}>Powered By Navabharath Technologies</Text>
+              <Image
+                source={require('../assets/navabharath_logo.png')}
+                style={styles.navabharathLogo}
+                resizeMode="contain"
+              />
+              <Text style={styles.poweredByCompanyName}>Navabharath Technologies</Text>
             </View>
 
             {/* Contact & Support */}
@@ -672,6 +679,45 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: '#475569',
+  },
+  poweredByCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  poweredByTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.darkPurple,
+    letterSpacing: 0.4,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  navabharathLogo: {
+    width: 180,
+    height: 120,
+    marginBottom: 8,
+  },
+  poweredByCompanyName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: 0.5,
   },
   contactItem: {
     flexDirection: 'row',
