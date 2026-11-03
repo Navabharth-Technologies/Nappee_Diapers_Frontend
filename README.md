@@ -1,195 +1,240 @@
-#📌 Overview
+# Nappee Diapers - Frontend Application Suite
 
-Nappee Diapers is an enterprise-grade, cross-platform mobile, desktop, and web application developed by Navabharath Technologies for Nappee Diapers. The application provides an end-to-end hyperlocal e-commerce and delivery ecosystem for eco-friendly, premium diapers.
+Welcome to the **Nappee Diapers Frontend Application Suite**, a modern hyperlocal e-commerce and delivery operations platform designed to streamline customer diaper ordering, store administration, live inventory management, and delivery logistics for eco-friendly, premium baby and adult diapers.
 
-The system features three dedicated role interfaces within a single unified codebase:
+The suite consists of three interconnected components:
 
-Customer Mobile Application: Product discovery, diaper variation selection, Mysuru PIN-code eligibility verification, interactive GPS/map address drop, coupon redemption, Razorpay checkout, and live order tracking.
-Owner / Store Admin Dashboard: Catalogue maintenance, price & MRP updates, real-time stock counters, order stream processing, delivery partner assignment, coupon management, and daily/monthly revenue analytics.
-Delivery Partner Portal: Real-time order manifest, customer contact information, one-click turn-by-turn navigation via Google Maps intent, and delivery status progression (OUT_FOR_DELIVERY ➔ DELIVERED).
+* 🛒 **Customer Portal:**  
+  Browse diaper variations (Pant & Velcro styles), verify Mysuru PIN-code delivery eligibility, manage shopping cart, capture GPS/manual delivery address, apply coupons, and checkout securely via Razorpay.
 
-##🚀 Key Modules & Capabilities
+* 🏢 **Owner / Admin Portal:**  
+  Manage product catalogue and imagery, update MRP and selling prices, track live inventory, assign delivery partners, monitor order status, configure promotional coupons, and review collection reports.
 
-###1. 🛒 Customer Experience
-Diaper Style Variations: Full support for both Pant-Style and Velcro-Style diapers.
-Size & Pack Coverage: Newborn (NB), Small (S), Medium (M), Large (L), Extra Large (XL), XXL, and XXXL with pack counts ranging from 40 to 72 pcs.
-Hyperlocal PIN-Code Filter: Validates customer postal codes against the approved Mysuru city coverage list (570001–570026). Ineligible locations display a graceful notice redirecting users to the brand website.
-Precision Geolocation: Captures customer delivery points via native device GPS (expo-location), interactive pin-drop, or structured manual address entry with reverse geocoding via OpenStreetMap Nominatim.
-Payment Processing: Integrated Razorpay SDK supporting UPI (GPay, PhonePe, Paytm), Credit/Debit Cards, Netbanking, and Wallets.
-Order History & Live Tracking: Real-time order status tracking with timestamps and automated Meta WhatsApp notifications.
+* 🛵 **Delivery Partner Portal:**  
+  View assigned delivery manifests, access customer delivery locations, launch turn-by-turn Google Maps navigation with exact coordinates, and update delivery milestones in real time.
 
-###2. 🏢 Store Owner & Administrator Dashboard
-Catalogue Management: Add, edit, or deactivate diaper products, update MRP, selling prices, discounts, and upload product imagery.
-Live Inventory Controls: Monitor real-time stock counts (IN_STOCK, LOW_STOCK, OUT_OF_STOCK) with instant toggles.
-Order Queue & Fulfilment: View orders as they are placed, verify payment confirmations, and assign orders to delivery personnel.
-Coupon & Promotion Engine: Create and monitor fixed-value or percentage-based general discounts and influencer attribution codes.
-Financial Analytics: Real-time daily and monthly gross collections, order volumes, and coupon usage figures.
+---
 
-###3. 🛵 Delivery Partner Workflow
-Authentication: Fast, phone-based login for verified delivery personnel.
-Active Deliveries Queue: Clean list of orders currently assigned to the delivery partner.
-One-Click Turn-by-Turn Routing: Direct trigger launching Google Maps navigation with exact customer coordinates.
-Proof of Delivery: Instant status updates marking orders as DELIVERED with backend synchronization and automated customer WhatsApp alerts.
+## 📂 Project Structure
 
-###4. 🛡️ Legal & Brand Compliance
-Standardized 3-Tab Interface (/app/legal.tsx): Houses Privacy Policy, Terms & Conditions, and About & Grievance Information.
-Official Branding: Features official "Powered by Navabharath Technologies" branding with the company shield logo using hybrid cloud and local asset caching.
+| Component | Path | Technology | Description |
+| :--- | :--- | :--- | :--- |
+| **Customer Portal** | `./app/customer` | React Native / Expo | Product catalogue, cart, PIN-code check, address selection, checkout, and tracking |
+| **Owner / Admin Portal** | `./app/owner` | React Native / Expo | Product catalogue, stock management, order assignment, coupons, and revenue reports |
+| **Delivery Partner Portal** | `./app/delivery` | React Native / Expo | Assigned order manifest, customer contact, Google Maps turn-by-turn routing |
+| **Legal & Compliance** | `./app/legal.tsx` | React Native / Expo | Privacy policy, terms & conditions, grievance details, and Navabharath branding |
+| **Desktop Application** | `./electron` | Electron / Builder | Standalone Windows desktop client for store owner operations |
+| **State & Store** | `./src/store` | Zustand / AsyncStorage | Global reactive state management and Azure REST API synchronization |
+| **Shared Components** | `./src/components` | React Native | Reusable map components (`Map.native.tsx`, `Map.web.tsx`) and layout elements |
 
-##📂 Project Directory Structure
+---
 
-Nappee_Diapers/
-├── android/                   # Native Android project (Gradle, build configs, native icons)
-│   ├── app/
-│   │   ├── build.gradle       # App-level build file (Namespace: com.tejashwini_s.Nappee_Diapers)
-│   │   └── src/main/res/      # Native icons, drawables, and splash screens
-│   └── gradle.properties      # JVM memory tuning (-Xmx4096m -XX:MaxMetaspaceSize=1536m)
-├── app/                       # File-based routing (Expo Router)
-│   ├── customer/              # Customer ordering journey
-│   │   ├── address-form.tsx   # Structured manual delivery address form
-│   │   ├── index.tsx          # Main catalogue, cart, and chat interface
-│   │   ├── location.tsx       # Interactive GPS pin drop & map selection
-│   │   ├── orders.tsx         # Order history & receipt view
-│   │   └── tracking.tsx       # Live status tracking timeline
-│   ├── delivery/              # Delivery partner portal
-│   │   ├── index.tsx          # Active deliveries queue
-│   │   ├── login.tsx          # Delivery partner authentication
-│   │   └── order/[id].tsx     # Delivery details & Google Maps routing
-│   ├── owner/                 # Owner / Admin operations dashboard
-│   │   ├── coupons.tsx        # Promotional & influencer coupon management
-│   │   ├── customers.tsx      # Customer directory and order history
-│   │   ├── delivery.tsx       # Delivery partner onboarding & status
-│   │   ├── index.tsx          # Real-time collections & KPI dashboard
-│   │   ├── orders.tsx         # Master orders management stream
-│   │   ├── products.tsx       # Diaper catalogue & stock adjustment
-│   │   └── order/[id].tsx     # Order detail, payment status & assignment
-│   ├── _layout.tsx            # Global stack layout & navigation bar
-│   ├── index.tsx              # Welcome splash & role selection screen
-│   ├── legal.tsx              # Standard 3-tab legal compliance screen
-│   └── owner-login.tsx        # Administrative authentication screen
-├── assets/                    # Static branding, logo, and app icons
-├── electron/                  # Electron wrapper for Windows desktop builds
-│   ├── main.js                # Electron main process
-│   └── package.json           # Desktop packaging configuration
-├── src/                       # Shared state and presentation components
-│   ├── components/            # Reusable UI components (Map.native.tsx, Map.web.tsx)
-│   ├── store/                 # Zustand store & business logic
-│   │   ├── types.ts           # TypeScript interfaces (Product, Order, Customer, etc.)
-│   │   ├── mockData.ts        # Serviceable PIN codes list (570001 - 570026)
-│   │   └── useStore.ts        # Zustand state store with Azure backend sync
-│   └── theme/                 # Global color palettes & typography tokens
-├── app.json                   # Expo application manifest & bundle configuration
-├── eas.json                   # Expo Application Services (EAS) build & update profiles
-├── package.json               # Dependencies and development scripts
-└── tsconfig.json              # TypeScript compilation configuration
-The frontend dynamically communicates with the production Azure cloud backend:
+## ✨ Core Features
 
-Official Website: https://www.nappeediapers.in/
-Target SDK: 36 (Android 15 ready)
-Minimum SDK: 24 (Android 7.0+)
+### 🛒 Customer Portal
 
-The API connection is managed centrally in src/store/useStore.ts via getApiUrl():
+#### Product Discovery & Cart
+* Diaper variations: Pant-Style and Velcro/Tape-Style
+* Size & pack options: Newborn (NB), Small (S), Medium (M), Large (L), Extra Large (XL), XXL, XXXL (40 to 72 pcs)
+* Real-time cart calculation (subtotal, delivery fee, and discount deductions)
+* Real-time stock status badge (`IN_STOCK` / `OUT_OF_STOCK`)
 
-typescript
-export const getApiUrl = (storeType: 'diapers' | 'DIAPERS' = 'diapers') => {
-  return 'https://nappee-cmfab8eyb3d9f0cf.centralindia-01.azurewebsites.net';
-};
+#### Hyperlocal PIN-Code Validation
+* Serviceable Mysuru PIN-code checks (`570001` to `570026`)
+* Out-of-area notification with website redirection (`https://www.nappeediapers.in/`)
+* Returning customer recognition via mobile number
 
-##💻 Getting Started (Development Setup)
+#### Precision Location Capture
+* One-click GPS pin drop via native device location (`expo-location`)
+* Reverse geocoding via OpenStreetMap Nominatim
+* Structured manual address form (House/Flat No., Street, Landmark, Area)
+* Saved address book for repeat orders
 
-###Prerequisites
+#### Payments & Order Tracking
+* Razorpay checkout (UPI, Credit/Debit Cards, Netbanking, Wallets)
+* Background 30-second automated payment reconciliation
+* Live order tracking timeline with timestamps
+* Automated Meta WhatsApp confirmation messages
 
-1. Node.js: v20.x or higher (LTS recommended)
-2. npm: v10.x or higher
-3. Java Development Kit (JDK): JDK 17 (Required for Android native builds)
-4. Android Studio: Android SDK Platform 36 and Android Build-Tools 36.0.0
-5. Expo CLI: Installed globally or invoked via npx expo
+---
 
-###Installation
+### 🏢 Owner / Admin Portal
 
-1. Clone the repository:
+#### Catalogue & Inventory Management
+* Add, edit, or deactivate diaper SKUs
+* Update MRP, selling prices, discounts, and pack counts
+* Upload product images with fallback handling
+* Real-time stock tracking with one-click toggles (`IN_STOCK`, `LOW_STOCK`, `OUT_OF_STOCK`)
 
-bash
+#### Order Processing & Fulfilment
+* Live orders stream with customer details and item breakdown
+* Real-time payment verification indicators (`PAID`, `PENDING`)
+* One-click delivery partner assignment
+* Order status transitions (`CONFIRMED`, `ASSIGNED`, `OUT_FOR_DELIVERY`, `DELIVERED`)
+
+#### Promotional Campaigns & Coupons
+* Create general discount codes (percentage or flat discount)
+* Create influencer-attributed coupon codes
+* Configure minimum cart value and maximum discount caps
+* Real-time coupon redemption counters
+
+#### Collection & Sales Analytics
+* Daily and monthly gross collection summaries
+* Successfully paid order metrics
+* Net revenue, discount amounts, and order volume tracking
+
+---
+
+### 🛵 Delivery Partner Portal
+
+#### Secure Authentication
+* Quick phone-based authentication for verified riders
+* Driver profile and active duty status
+
+#### Active Delivery Manifest
+* Clean queue of orders assigned to the logged-in partner
+* Customer contact number with direct call trigger
+* Complete item and pack breakdown
+
+#### Turn-by-Turn Navigation
+* One-click launch of Google Maps navigation
+* Direct routing using customer latitude and longitude coordinates
+* Fallback to structured text address and landmark
+
+#### Proof of Fulfilment
+* One-click status update marking order as `DELIVERED`
+* Automatic synchronization with Azure SQL backend
+* Automatic delivery confirmation message sent to customer via WhatsApp
+
+---
+
+## 🎨 User Experience
+
+### Modern Hyperlocal E-Commerce UI
+* Clean, trustworthy aesthetic tailored for baby and family care
+* Smooth animations and responsive layouts
+* Real-time visual feedback on cart, coupons, and orders
+* Multi-device compatibility (Android mobile & tablet, Web browser, Windows desktop)
+
+### Optimized Workflows
+* Rapid PIN-code eligibility verification
+* Returning customer detail auto-fill
+* One-click payment and address confirmation
+* Minimal operational complexity for store owners and delivery partners
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+* **Node.js** (LTS Version 20.x or higher)
+* **npm** (v10.x or higher)
+* **Java Development Kit** (JDK 17)
+* **Android Studio & Android SDK** (Platform 36, Build-Tools 36.0.0)
+* **Expo CLI** (`npx expo`)
+* **Physical Android Device or Emulator**
+
+### Local Development Setup
+
+```bash
+# 1. Clone repository
 git clone https://github.com/Navabharth-Technologies/Nappee_Diapers_Frontend.git
+
+# 2. Navigate to directory
 cd Nappee_Diapers_Frontend
 
-2. Install dependencies:
-
-bash
+# 3. Install dependencies
 npm install
+```
 
-###Running the Application
+### Start Development Server
 
-1. Start Expo Metro Bundler:
-
-bash
+```bash
 npx expo start
+```
+* Press `a` to open in Android Emulator / connected device.
+* Press `w` to open in Web Browser.
 
-2. Run on Android Emulator / Physical Device:
+### Run on Android
 
-bash
+```bash
 npm run android
 # or
 npx expo run:android
+```
 
-3. Run on Web Browser:
+### Run on Web
 
-bash
+```bash
 npm run web
 # or
 npx expo start --web
+```
 
-4. Run Desktop Client (Electron Development):
+### Run Desktop Application (Windows)
 
-bash
+```bash
 cd electron
 npm install
 npm start
+```
 
-##📦 Building for Production
+---
 
-###1. Standalone Android APK (.apk)
+## 🛠 Deployment & Build Process
 
-To compile a standalone release APK for direct sideloading or internal QA:
+### Generate Debug APK
+```bash
+cd android
+./gradlew assembleDebug
+```
+* **Generated APK:** `android/app/build/outputs/apk/debug/app-debug.apk`
 
-bash
+### Generate Release APK (Standalone)
+```bash
 cd android
 ./gradlew assembleRelease
-Output Artifact: android/app/build/outputs/apk/release/app-release.apk
-Root Artifact: Nappee_Diapers_Release.apk (~114 MB)
+```
+* **Generated APK:** `android/app/build/outputs/apk/release/app-release.apk`
+* **Root Artifact:** `Nappee_Diapers_Release.apk` (~114 MB)
 
-###2. Google Play Production App Bundle (.aab)
-
-To build an optimized, signed release bundle for the Google Play Store:
-
-bash
+### Generate Android App Bundle (AAB for Google Play Store)
+```bash
 cd android
 ./gradlew bundleRelease
-Output Artifact: android/app/build/outputs/bundle/release/app-release.aab
-Root Artifact: Nappee_Diapers_Release.aab (~80 MB raw / ~29.9 MB install size)
+```
+* **Generated AAB:** `android/app/build/outputs/bundle/release/app-release.aab`
+* **Root Artifact:** `Nappee_Diapers_Release.aab` (~80 MB raw / ~29.9 MB install size)
 
-###3. Windows Desktop Executable (.exe)
-
-To package the desktop store management application for 64-bit Windows:
-
-bash
-
-# 1. Build web production bundle
+### Package Windows Desktop Executable (.exe)
+```bash
+# 1. Export static web bundle
 npx expo export:web
 
 # 2. Package with Electron Builder
 cd electron
 npm run build
-Output Artifacts: electron-dist/Nappee Diapers Setup 1.0.0.exe and portable Nappee_Diapers.exe.
+```
+* **Generated Setup:** `electron-dist/Nappee Diapers Setup 1.0.0.exe`
+* **Portable Binary:** `Nappee_Diapers.exe`
 
-###4. Over-The-Air (OTA) Updates
+### Over-The-Air (OTA) Updates
+```bash
+npx eas update --branch production --message "Production release update"
+```
 
-To push instant JavaScript/asset updates to installed user apps without rebuilding binaries:
+---
 
-bash
-npx eas update --branch production --message "Production patch update"
+## 🤝 Contribution & Maintenance
 
-##🛡️ Security, Privacy & Compliance
+This project is developed and maintained by the **Navabharath Technologies Development Team** for **Nappee Diapers (Parisara Samrakshana Foundation)**.
 
-###Payment Security: Raw payment card and UPI credentials are handled exclusively within the secure Razorpay PCI-DSS Level 1 compliant modal. Order confirmation is verified using server-side HMAC-SHA256 signatures.
-###Scoped Location Access: Precise user coordinates are gathered only with runtime user authorization (ACCESS_FINE_LOCATION) and used strictly for delivery routing.
-###Google Play Policy Compliance: Includes live hosted Privacy Policy and Terms of Service endpoints
+* **Organization:** Navabharath Technologies
+* **Official Website:** [https://www.nappeediapers.in/](https://www.nappeediapers.in/)
+* **Backend API:** [Azure App Service](https://nappee-cmfab8eyb3d9f0cf.centralindia-01.azurewebsites.net)
+
+For support, enhancements, or technical queries, please contact the repository administrator.
+
+---
+
+© 2026 Navabharath Technologies. All Rights Reserved.
