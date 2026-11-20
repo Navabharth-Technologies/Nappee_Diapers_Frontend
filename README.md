@@ -229,6 +229,8 @@ npx eas update --branch production --message "Production release update"
 
 This project is developed and maintained by the **Navabharath Technologies Development Team** for **Nappee Diapers (Parisara Samrakshana Foundation)**.
 
+* **Client / Product Owner:** Nandini — Parisara Samrakshana Foundation
+* **Lead / Project Manager:** Anish V N (Manager)
 * **Organization:** Navabharath Technologies
 * **Official Website:** [https://www.nappeediapers.in/](https://www.nappeediapers.in/)
 * **Backend API:** [Azure App Service](https://nappee-cmfab8eyb3d9f0cf.centralindia-01.azurewebsites.net)

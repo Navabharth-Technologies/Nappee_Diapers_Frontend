@@ -1,13 +1,116 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Image, Linking } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Image, Linking, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../src/theme/colors';
 import { useStore, getApiUrl } from '../../src/store/useStore';
-import { Send, Truck, ChevronRight } from 'lucide-react-native';
-import { ChatMessage, Customer, Address } from '../../src/store/types';
+import { Send, Truck, ChevronRight, X, ZoomIn } from 'lucide-react-native';
+import { ChatMessage, Customer, Address, Product } from '../../src/store/types';
 import { SERVICEABLE_PINCODES } from '../../src/store/mockData';
 import { useRouter } from 'expo-router';
 import RazorpayCheckout from 'react-native-razorpay';
+
+export interface DiaperSpecs {
+  size: string;
+  weightCapacity: string;
+  recommendedAge: string;
+  packCount: string;
+  style: string;
+}
+
+export const getDiaperSpecs = (product: Product): DiaperSpecs => {
+  const name = (product.name || '').toLowerCase();
+  const id = (product.id || '').toLowerCase();
+  const pack = product.packSize || '';
+
+  // Premie (PB)
+  if (id.includes('pb') || name.includes('premie') || name.includes('premature') || name.includes('(pb)')) {
+    return {
+      size: 'Premie (PB)',
+      weightCapacity: 'Up to 3 kg (0 – 3 kg)',
+      recommendedAge: 'Premature / Early Newborn',
+      packCount: pack || '30 pcs',
+      style: 'Tape & Velcro Style'
+    };
+  }
+  // Newborn (NB)
+  if (id.includes('nb') || name.includes('newborn') || name.includes('(nb)')) {
+    return {
+      size: 'Newborn (NB)',
+      weightCapacity: 'Up to 5 kg (0 – 5 kg)',
+      recommendedAge: '0 – 3 Months',
+      packCount: pack || '36 & 72 pcs',
+      style: 'Tape & Velcro Style'
+    };
+  }
+  // XXXL
+  if (id.includes('xxxl') || name.includes('xxxl') || name.includes('triple extra large')) {
+    return {
+      size: 'Triple Extra Large (XXXL)',
+      weightCapacity: '18 – 30+ kg',
+      recommendedAge: '3 – 5+ Years',
+      packCount: pack || '40 pcs',
+      style: product.category || 'Pant-Style'
+    };
+  }
+  // XXL
+  if (id.includes('xxl') || name.includes('xxl') || name.includes('double extra large')) {
+    return {
+      size: 'Double Extra Large (XXL)',
+      weightCapacity: '15 – 25 kg',
+      recommendedAge: '2 – 4 Years',
+      packCount: pack || '44 pcs',
+      style: product.category || 'Pant-Style'
+    };
+  }
+  // XL
+  if (id.includes('xl') || name.includes('extra large') || name.includes('(xl)')) {
+    return {
+      size: 'Extra Large (XL)',
+      weightCapacity: '12 – 17 kg',
+      recommendedAge: '18 – 36 Months',
+      packCount: pack || '48 pcs',
+      style: product.category || 'Pant-Style'
+    };
+  }
+  // Large (L)
+  if (id.includes('-l-') || name.includes('large') || name.includes('(l)')) {
+    return {
+      size: 'Large (L)',
+      weightCapacity: '9 – 14 kg',
+      recommendedAge: '9 – 24 Months',
+      packCount: pack || '52 pcs',
+      style: product.category || 'Pant-Style'
+    };
+  }
+  // Medium (M)
+  if (id.includes('-m-') || name.includes('medium') || name.includes('(m)')) {
+    return {
+      size: 'Medium (M)',
+      weightCapacity: '7 – 12 kg',
+      recommendedAge: '5 – 12 Months',
+      packCount: pack || (id.includes('velcro') ? '52 pcs' : '56 pcs'),
+      style: id.includes('velcro') ? 'Tape & Velcro Style' : 'Pant-Style'
+    };
+  }
+  // Small (S)
+  if (id.includes('-s-') || name.includes('small') || name.includes('(s)')) {
+    return {
+      size: 'Small (S)',
+      weightCapacity: '4 – 8 kg',
+      recommendedAge: '1 – 6 Months',
+      packCount: pack || '62 pcs',
+      style: id.includes('velcro') ? 'Tape & Velcro Style' : 'Pant-Style'
+    };
+  }
+
+  return {
+    size: product.packSize || 'Standard Size',
+    weightCapacity: 'Standard Fit',
+    recommendedAge: 'Baby & Toddler',
+    packCount: pack || 'Standard Pack',
+    style: product.category || 'Diaper'
+  };
+};
 
 export default function CustomerChatScreen() {
   const router = useRouter();
@@ -25,6 +128,7 @@ export default function CustomerChatScreen() {
   const [tempCustomer, setTempCustomer] = useState<Partial<Customer>>({});
   const [tempAddress, setTempAddress] = useState<Partial<Address>>({});
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [selectedProductForEnlarge, setSelectedProductForEnlarge] = useState<Product | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   // Find active order for the current customer
@@ -601,17 +705,40 @@ export default function CustomerChatScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.carousel}>
               {products.filter(p => p.active && (!item.category || (p.category === item.category || p.name.includes(item.category)))).map(p => {
                 const isOut = p.stockStatus === 'OUT_OF_STOCK';
+                const specs = getDiaperSpecs(p);
                 return (
                   <View key={p.id} style={styles.productCard}>
-                    <View>
-                      {p.imageUrl ? (
-                        <Image source={{ uri: p.imageUrl.startsWith('http') ? p.imageUrl : getApiUrl('diapers') + p.imageUrl }} style={styles.img} />
-                      ) : (
-                        <View style={[styles.img, { backgroundColor: p.imageFallback }]} />
-                      )}
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={() => setSelectedProductForEnlarge(p)}
+                      style={styles.productCardTouch}
+                    >
+                      <View style={styles.productImgContainer}>
+                        {p.imageUrl ? (
+                          <Image 
+                            source={{ uri: p.imageUrl.startsWith('http') ? p.imageUrl : getApiUrl('diapers') + p.imageUrl }} 
+                            style={styles.img} 
+                            resizeMode="contain"
+                          />
+                        ) : (
+                          <View style={[styles.img, { backgroundColor: p.imageFallback }]} />
+                        )}
+                        <View style={styles.zoomPill}>
+                          <ZoomIn size={11} color={colors.white} />
+                          <Text style={styles.zoomPillText}>Enlarge</Text>
+                        </View>
+                      </View>
                       <Text style={styles.pName} numberOfLines={2}>{p.name}</Text>
-                      <Text style={styles.pPrice}>₹{p.sellingPrice}</Text>
-                    </View>
+                      <View style={styles.pMetaRow}>
+                        <Text style={styles.pPrice}>₹{p.sellingPrice}</Text>
+                        {p.mrp > p.sellingPrice && (
+                          <Text style={styles.pMrp}>₹{p.mrp}</Text>
+                        )}
+                      </View>
+                      <View style={styles.pWeightBadge}>
+                        <Text style={styles.pWeightText} numberOfLines={1}>👶 {specs.weightCapacity}</Text>
+                      </View>
+                    </TouchableOpacity>
                     {isOut ? (
                       <Text style={styles.outOfStockText}>Currently Out of Stock</Text>
                     ) : (
@@ -800,6 +927,138 @@ export default function CustomerChatScreen() {
           <Send size={20} color={colors.white} />
         </TouchableOpacity>
       </View>
+
+      {/* Enlarged Product Details Modal */}
+      <Modal
+        visible={!!selectedProductForEnlarge}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedProductForEnlarge(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <TouchableOpacity 
+            style={styles.modalDismissArea} 
+            activeOpacity={1} 
+            onPress={() => setSelectedProductForEnlarge(null)} 
+          />
+          {selectedProductForEnlarge && (() => {
+            const p = selectedProductForEnlarge;
+            const specs = getDiaperSpecs(p);
+            const isOut = p.stockStatus === 'OUT_OF_STOCK';
+            const imageUrl = p.imageUrl ? (p.imageUrl.startsWith('http') ? p.imageUrl : getApiUrl('diapers') + p.imageUrl) : null;
+            
+            return (
+              <View style={styles.modalCard}>
+                {/* Header with Title and Close Button */}
+                <View style={styles.modalHeader}>
+                  <View style={{ flex: 1, paddingRight: 8 }}>
+                    <Text style={styles.modalCategoryBadge}>{specs.style.toUpperCase()}</Text>
+                    <Text style={styles.modalProductTitle} numberOfLines={2}>{p.name}</Text>
+                  </View>
+                  <TouchableOpacity 
+                    style={styles.modalCloseBtn}
+                    onPress={() => setSelectedProductForEnlarge(null)}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <X size={20} color={colors.text} />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+                  {/* Clear, High-Resolution Enlarged Image */}
+                  <View style={styles.enlargedImgWrapper}>
+                    {imageUrl ? (
+                      <Image 
+                        source={{ uri: imageUrl }} 
+                        style={styles.enlargedImg} 
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <View style={[styles.enlargedImg, { backgroundColor: p.imageFallback || colors.softPurple }]} />
+                    )}
+                  </View>
+
+                  {/* Highlighted Baby Weight Capacity Card */}
+                  <View style={styles.capacityHighlightCard}>
+                    <View style={styles.capacityHeaderRow}>
+                      <Text style={styles.capacityIcon}>👶</Text>
+                      <View style={{ flex: 1, marginLeft: 8 }}>
+                        <Text style={styles.capacityLabel}>RECOMMENDED BABY WEIGHT CAPACITY</Text>
+                        <Text style={styles.capacityValue}>{specs.weightCapacity}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.capacitySubtext}>
+                      Specially crafted for baby comfort, leak protection & gentle fit for this weight range.
+                    </Text>
+                  </View>
+
+                  {/* Size, Pack & Age Spec Badges */}
+                  <View style={styles.specBadgesRow}>
+                    <View style={styles.specBadgeBox}>
+                      <Text style={styles.specBadgeTitle}>DIAPER SIZE</Text>
+                      <Text style={styles.specBadgeValue}>{specs.size}</Text>
+                    </View>
+                    <View style={styles.specBadgeBox}>
+                      <Text style={styles.specBadgeTitle}>PACK COUNT</Text>
+                      <Text style={styles.specBadgeValue}>{specs.packCount}</Text>
+                    </View>
+                    <View style={styles.specBadgeBox}>
+                      <Text style={styles.specBadgeTitle}>RECOMMENDED AGE</Text>
+                      <Text style={styles.specBadgeValue}>{specs.recommendedAge}</Text>
+                    </View>
+                  </View>
+
+                  {/* Pricing Section */}
+                  <View style={styles.modalPriceContainer}>
+                    <View>
+                      <Text style={styles.modalPriceLabel}>Special Price</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
+                        <Text style={styles.modalPriceValue}>₹{p.sellingPrice}</Text>
+                        {p.mrp > p.sellingPrice && (
+                          <Text style={styles.modalMrpValue}>MRP ₹{p.mrp}</Text>
+                        )}
+                      </View>
+                    </View>
+                    {p.discount > 0 && (
+                      <View style={styles.discountPill}>
+                        <Text style={styles.discountPillText}>{p.discount}% OFF</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Description if present */}
+                  {p.description ? (
+                    <View style={styles.modalDescBox}>
+                      <Text style={styles.modalDescTitle}>About this product</Text>
+                      <Text style={styles.modalDescText}>{p.description}</Text>
+                    </View>
+                  ) : null}
+                </ScrollView>
+
+                {/* Footer Action Button */}
+                <View style={styles.modalFooter}>
+                  {isOut ? (
+                    <View style={styles.modalOutBox}>
+                      <Text style={styles.modalOutText}>Currently Out of Stock</Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity 
+                      style={styles.modalAddToCartBtn}
+                      onPress={() => {
+                        addToCart(p, 1);
+                        addChatMessage({ sender: 'bot', text: `Added ${p.packSize} to your cart. 🛒`, type: 'add_to_cart_success' });
+                        setSelectedProductForEnlarge(null);
+                      }}
+                    >
+                      <Text style={styles.modalAddToCartBtnText}>🛒 Add to Cart (₹{p.sellingPrice})</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            );
+          })()}
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -878,15 +1137,59 @@ const styles = StyleSheet.create({
   quickReplies: { flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 12 },
   qrBtn: { backgroundColor: colors.white, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, marginRight: 10, borderWidth: 1, borderColor: colors.primary },
   qrText: { color: colors.primary, fontWeight: '500' },
-  carousel: { marginTop: 12, width: '100%', height: 250 },
+  carousel: { marginTop: 12, width: '100%', height: 290 },
   addressCard: { width: 240, height: 170, backgroundColor: colors.white, borderRadius: 20, padding: 16, marginRight: 16, borderWidth: 1, borderColor: colors.border, justifyContent: 'space-between', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
-  productCard: { width: 160, height: 240, backgroundColor: colors.white, borderRadius: 20, padding: 12, marginRight: 16, borderWidth: 1, borderColor: colors.border, justifyContent: 'space-between', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
-  img: { height: 90, borderRadius: 12, marginBottom: 12 },
-  pName: { fontSize: 14, fontWeight: '600', marginBottom: 6 },
-  pPrice: { fontSize: 14, fontWeight: '700', color: colors.darkPurple, marginBottom: 8 },
-  btn: { backgroundColor: colors.softPurple, paddingVertical: 8, borderRadius: 6, alignItems: 'center' },
-  btnText: { color: colors.primary, fontSize: 12, fontWeight: '600' },
+  productCard: { width: 168, height: 280, backgroundColor: colors.white, borderRadius: 20, padding: 12, marginRight: 16, borderWidth: 1, borderColor: colors.border, justifyContent: 'space-between', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  productCardTouch: { flex: 1, justifyContent: 'flex-start' },
+  productImgContainer: { position: 'relative', width: '100%', height: 95, backgroundColor: '#f8fafc', borderRadius: 12, overflow: 'hidden', marginBottom: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
+  img: { width: '100%', height: '100%' },
+  zoomPill: { position: 'absolute', bottom: 4, right: 4, backgroundColor: 'rgba(42, 26, 36, 0.75)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 3 },
+  zoomPillText: { color: '#ffffff', fontSize: 9, fontWeight: '700' },
+  pName: { fontSize: 13, fontWeight: '600', marginBottom: 4, color: colors.text, height: 36 },
+  pMetaRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 2 },
+  pPrice: { fontSize: 15, fontWeight: '800', color: colors.darkPurple },
+  pMrp: { fontSize: 11, color: colors.mutedText, textDecorationLine: 'line-through' },
+  pWeightBadge: { backgroundColor: colors.softPurple, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6, alignSelf: 'flex-start', marginTop: 2, marginBottom: 4 },
+  pWeightText: { fontSize: 10, color: colors.primary, fontWeight: '700' },
+  btn: { backgroundColor: colors.softPurple, paddingVertical: 8, borderRadius: 8, alignItems: 'center', marginTop: 4 },
+  btnText: { color: colors.primary, fontSize: 12, fontWeight: '700' },
   outOfStockText: { color: 'red', fontSize: 12, fontWeight: '600', textAlign: 'center', marginVertical: 8 },
+  
+  // Enlarged Product Modal Styles
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.75)', justifyContent: 'center', alignItems: 'center', padding: 16 },
+  modalDismissArea: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 },
+  modalCard: { width: '100%', maxWidth: 440, maxHeight: '90%', backgroundColor: colors.white, borderRadius: 24, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.25, shadowRadius: 20, elevation: 10 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
+  modalCategoryBadge: { fontSize: 11, fontWeight: '700', color: colors.primary, letterSpacing: 0.5, marginBottom: 2 },
+  modalProductTitle: { fontSize: 16, fontWeight: '700', color: colors.darkPurple },
+  modalCloseBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#f1f5f9', justifyContent: 'center', alignItems: 'center' },
+  modalBody: { paddingHorizontal: 18, paddingVertical: 14 },
+  enlargedImgWrapper: { width: '100%', height: 240, backgroundColor: '#f8fafc', borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', marginBottom: 14 },
+  enlargedImg: { width: '92%', height: '92%' },
+  capacityHighlightCard: { backgroundColor: '#F3E8FF', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: '#D8B4FE', marginBottom: 12 },
+  capacityHeaderRow: { flexDirection: 'row', alignItems: 'center' },
+  capacityIcon: { fontSize: 24 },
+  capacityLabel: { fontSize: 10, fontWeight: '700', color: colors.primary, letterSpacing: 0.5 },
+  capacityValue: { fontSize: 17, fontWeight: '800', color: colors.darkPurple, marginTop: 1 },
+  capacitySubtext: { fontSize: 11, color: colors.darkPurple, marginTop: 4, lineHeight: 16, opacity: 0.85 },
+  specBadgesRow: { flexDirection: 'row', gap: 6, marginBottom: 12 },
+  specBadgeBox: { flex: 1, backgroundColor: colors.background, borderRadius: 10, padding: 8, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
+  specBadgeTitle: { fontSize: 9, fontWeight: '700', color: colors.mutedText, marginBottom: 3, textAlign: 'center' },
+  specBadgeValue: { fontSize: 12, fontWeight: '700', color: colors.text, textAlign: 'center' },
+  modalPriceContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FAF5FF', padding: 12, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#F3E8FF' },
+  modalPriceLabel: { fontSize: 11, color: colors.mutedText, fontWeight: '600' },
+  modalPriceValue: { fontSize: 20, fontWeight: '800', color: colors.darkPurple },
+  modalMrpValue: { fontSize: 13, color: colors.mutedText, textDecorationLine: 'line-through', fontWeight: '500' },
+  discountPill: { backgroundColor: '#16A34A', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  discountPillText: { color: '#ffffff', fontSize: 11, fontWeight: '700' },
+  modalDescBox: { marginBottom: 14, backgroundColor: colors.background, padding: 10, borderRadius: 10, borderWidth: 1, borderColor: colors.border },
+  modalDescTitle: { fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 3 },
+  modalDescText: { fontSize: 12, color: colors.mutedText, lineHeight: 17 },
+  modalFooter: { paddingHorizontal: 18, paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.white },
+  modalAddToCartBtn: { backgroundColor: colors.primary, paddingVertical: 13, borderRadius: 14, alignItems: 'center', shadowColor: colors.primary, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 6, elevation: 3 },
+  modalAddToCartBtnText: { color: colors.white, fontSize: 14, fontWeight: '700' },
+  modalOutBox: { backgroundColor: '#FEE2E2', paddingVertical: 11, borderRadius: 12, alignItems: 'center' },
+  modalOutText: { color: '#DC2626', fontSize: 13, fontWeight: '700' },
   cardBlock: { marginTop: 12, backgroundColor: colors.background, borderRadius: 8, padding: 12, width: '100%' },
   row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: 12 },

@@ -2,7 +2,26 @@ import { Product, Customer, DeliveryPartner, Order, Coupon } from './types';
 
 export const mockProducts: Product[] = [];
 export const mockCustomers: Customer[] = [];
-export const mockDeliveryPartners: DeliveryPartner[] = [];
+export const mockDeliveryPartners: DeliveryPartner[] = [
+  {
+    id: 'dp_demo_1',
+    name: 'Demo Delivery Partner',
+    phone: '8722424304',
+    status: 'AVAILABLE',
+    activeOrders: 1,
+    completedOrders: 5,
+    rating: 4.9
+  },
+  {
+    id: 'dp_demo_2',
+    name: 'Megharaj',
+    phone: '9060605564',
+    status: 'AVAILABLE',
+    activeOrders: 1,
+    completedOrders: 3,
+    rating: 4.8
+  }
+];
 export const mockOrders: Order[] = [];
 export const mockCoupons: Coupon[] = [];
 
