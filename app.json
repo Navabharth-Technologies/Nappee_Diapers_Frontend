@@ -22,6 +22,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.navabharath.nappeediapers",
+      "versionCode": 2,
       "config": {
         "googleMaps": {
           "apiKey": "dummy_key_to_prevent_crash_nappee_diapers"
