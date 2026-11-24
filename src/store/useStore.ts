@@ -34,6 +34,7 @@ interface AppState {
   toggleProductActive: (productId: string) => void;
   updateProductStock: (productId: string, change: number) => void;
   updateProductImage: (productId: string, imageUrl: string) => void;
+  updateProduct: (productId: string, updates: Partial<Product>) => Promise<void>;
   addToCart: (product: Product, quantity?: number) => void;
   updateCartQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -181,6 +182,21 @@ export const useStore = create<AppState>()(
           });
         } catch (err) {
           console.error('Failed to save image to backend:', err);
+        }
+      },
+
+      updateProduct: async (productId, updates) => {
+        set((state) => ({
+          products: state.products.map(p => p.id === productId ? { ...p, ...updates } : p)
+        }));
+        try {
+          await fetch(`${getApiUrl(get().appStoreType)}/api/products/${productId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates)
+          });
+        } catch (err) {
+          console.error('Failed to update product on backend:', err);
         }
       },
 

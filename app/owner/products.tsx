@@ -2,21 +2,59 @@ import React from 'react';
 import { View, Text, StyleSheet, SectionList, Switch, TouchableOpacity, Modal, TextInput, Image } from 'react-native';
 import { colors } from '../../src/theme/colors';
 import { useStore, getApiUrl, resolveProductImageUrl } from '../../src/store/useStore';
-import { Plus, Minus, ArrowLeft, ImagePlus } from 'lucide-react-native';
+import { Plus, Minus, ArrowLeft, ImagePlus, Pencil, X } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Product } from '../../src/store/types';
 
 export default function OwnerProductsScreen() {
   const router = useRouter();
-  const { products, toggleProductStock, toggleProductActive, updateProductStock, addProduct, updateProductImage } = useStore();
+  const { products, toggleProductStock, toggleProductActive, updateProductStock, addProduct, updateProductImage, updateProduct } = useStore();
   const [modalVisible, setModalVisible] = React.useState(false);
+  const [editModalVisible, setEditModalVisible] = React.useState(false);
+  const [editingProduct, setEditingProduct] = React.useState<Product | null>(null);
+  const [editName, setEditName] = React.useState('');
+  const [editPrice, setEditPrice] = React.useState('');
+  const [editPackSize, setEditPackSize] = React.useState('');
+  const [isSavingEdit, setIsSavingEdit] = React.useState(false);
+
   const [name, setName] = React.useState('');
   const [price, setPrice] = React.useState('');
   const [stock, setStock] = React.useState('');
   const [packSize, setPackSize] = React.useState('Pack of 2');
   const [imageUri, setImageUri] = React.useState<string | null>(null);
   const [category, setCategory] = React.useState('Pant-Style');
+
+  const handleOpenEditModal = (product: Product) => {
+    setEditingProduct(product);
+    setEditName(product.name || '');
+    setEditPrice(String(product.sellingPrice || ''));
+    setEditPackSize(product.packSize || '');
+    setEditModalVisible(true);
+  };
+
+  const handleSaveEditProduct = async () => {
+    if (!editingProduct) return;
+    if (!editName.trim()) {
+      alert('Product name cannot be empty');
+      return;
+    }
+    setIsSavingEdit(true);
+    try {
+      const updates: Partial<Product> = {
+        name: editName.trim(),
+        sellingPrice: Number(editPrice) || editingProduct.sellingPrice,
+        packSize: editPackSize.trim() || editingProduct.packSize
+      };
+      await updateProduct(editingProduct.id, updates);
+      setEditModalVisible(false);
+      setEditingProduct(null);
+    } catch (err: any) {
+      alert('Error updating product: ' + err.message);
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -88,7 +126,19 @@ export default function OwnerProductsScreen() {
             </View>
           </TouchableOpacity>
           <View style={styles.info}>
-            <Text style={styles.name}>{item.name}</Text>
+            <View style={styles.nameRow}>
+              <TouchableOpacity style={{ flex: 1, paddingRight: 8 }} onPress={() => handleOpenEditModal(item)}>
+                <Text style={styles.name}>{item.name}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.editBtnPill} 
+                onPress={() => handleOpenEditModal(item)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Pencil size={11} color={colors.primary} />
+                <Text style={styles.editBtnPillText}>Edit</Text>
+              </TouchableOpacity>
+            </View>
             <Text style={styles.price}>₹{item.sellingPrice}</Text>
             
             <View style={styles.salesInfo}>
@@ -237,6 +287,72 @@ export default function OwnerProductsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Edit Product Details Modal */}
+      <Modal visible={editModalVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Edit Product</Text>
+                {editingProduct && (
+                  <Text style={styles.modalSubtitle}>ID: {editingProduct.id}</Text>
+                )}
+              </View>
+              <TouchableOpacity onPress={() => setEditModalVisible(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <X size={20} color={colors.mutedText} />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.inputLabel}>Product Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter product name"
+              value={editName}
+              onChangeText={setEditName}
+            />
+
+            <View style={{ flexDirection: 'row', gap: 16 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.inputLabel}>Pack Size / Count</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. 52 pcs, Pack of 2"
+                  value={editPackSize}
+                  onChangeText={setEditPackSize}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.inputLabel}>Selling Price (₹)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter price"
+                  value={editPrice}
+                  onChangeText={(text) => setEditPrice(text.replace(/[^0-9]/g, ''))}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
+              <TouchableOpacity  
+                style={[styles.saveBtn, { flex: 1, backgroundColor: colors.border, marginTop: 0 }]}
+                onPress={() => setEditModalVisible(false)}
+              >
+                <Text style={[styles.saveBtnText, { color: colors.text }]}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity  
+                style={[styles.saveBtn, { flex: 2, marginTop: 0 }, (!editName.trim() || isSavingEdit) && styles.saveBtnDisabled]}
+                onPress={handleSaveEditProduct}
+                disabled={!editName.trim() || isSavingEdit}
+              >
+                <Text style={styles.saveBtnText}>{isSavingEdit ? 'Saving...' : 'Save Changes'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -273,7 +389,22 @@ const styles = StyleSheet.create({
   editImageOverlay: { position: 'absolute', bottom: 0, width: '100%', backgroundColor: 'rgba(0,0,0,0.5)', borderBottomLeftRadius: 8, borderBottomRightRadius: 8, paddingVertical: 2, alignItems: 'center' },
   editImageText: { color: 'white', fontSize: 10, fontWeight: 'bold' },
   info: { flex: 1, justifyContent: 'center' },
-  name: { fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 4 },
+  nameRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 },
+  editBtnPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.softPurple,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(128, 0, 128, 0.15)',
+    marginLeft: 4
+  },
+  editBtnPillText: { fontSize: 11, fontWeight: '600', color: colors.primary },
+  modalSubtitle: { fontSize: 12, color: colors.mutedText, marginTop: 2 },
+  name: { fontSize: 15, fontWeight: '700', color: colors.text },
   price: { fontSize: 14, color: colors.darkPurple, fontWeight: '600', marginBottom: 8 },
   salesInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   salesText: { fontSize: 13, color: colors.mutedText },
