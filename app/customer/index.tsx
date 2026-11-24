@@ -191,6 +191,16 @@ export default function CustomerChatScreen() {
     const idLower = (p.id || '').toLowerCase();
     const nameLower = (p.name || '').toLowerCase();
     const isPant = p.category === 'Pant-Style' || nameLower.includes('pant') || idLower.startsWith('pant');
+    const isVelcro = p.category === 'Velcro Style' || (p.category || '').toLowerCase().includes('velcro') || idLower.includes('velcro') || nameLower.includes('velcro') || nameLower.includes('tape');
+    const isSample = idLower.includes('prod_1795500818135') || idLower.includes('prod_1795500916500') || nameLower.includes('sample') || nameLower.includes('trial') || nameLower.includes('pack of 2');
+
+    if (isSample) {
+      const samplePrimary = p.imageUrl || (isVelcro || idLower.includes('velcro') ? '/public/products/prod_1795500916500.jpg' : '/public/products/prod_1795500818135.jpg');
+      return [
+        samplePrimary,
+        '/public/images/(Sample)-back.jpg'
+      ];
+    }
 
     if (isPant) {
       if (idLower.includes('xxxl') || nameLower.includes('xxxl') || nameLower.includes('triple')) {
@@ -239,6 +249,41 @@ export default function CustomerChatScreen() {
           '/public/images/(P)S-62-1.jpg',
           '/public/images/(P)S-62-2.jpg',
           '/public/images/(P)S-62-3.jpg'
+        ];
+      }
+    }
+
+    if (isVelcro) {
+      if (idLower.includes('pb') || nameLower.includes('prematur') || nameLower.includes('pb') || idLower.includes('pb-30')) {
+        return [
+          p.imageUrl || '/public/images/(V)PB-30.png',
+          '/public/images/(V)PB-30-1.jpg',
+          '/public/images/(V)PB-30-2.jpg',
+          '/public/images/(V)PB-30-3.jpg'
+        ];
+      }
+      if (idLower.includes('nb') || nameLower.includes('newborn') || nameLower.includes('nb') || idLower.includes('nb-72') || idLower.includes('nb-36')) {
+        return [
+          p.imageUrl || '/public/images/(V)NB-72.jpg',
+          '/public/images/(V)NB-72-1.jpg',
+          '/public/images/(V)NB-72-2.jpg',
+          '/public/images/(V)NB-72-3.jpg'
+        ];
+      }
+      if (idLower.includes('-s-') || idLower.includes('s-62') || nameLower.includes('(s)') || nameLower.includes('(small)') || nameLower.includes('small')) {
+        return [
+          p.imageUrl || '/public/images/(V)S-62.jpg',
+          '/public/images/(V)S-62-1.jpg',
+          '/public/images/(V)S-62-2.jpg',
+          '/public/images/(V)S-62-3.jpg'
+        ];
+      }
+      if (idLower.includes('-m-') || idLower.includes('m-52') || nameLower.includes('(m)') || nameLower.includes('(medium)') || nameLower.includes('medium')) {
+        return [
+          p.imageUrl || '/public/images/(V)M-52.jpg',
+          '/public/images/(V)M-52-1.jpg',
+          '/public/images/(V)M-52-2.jpg',
+          '/public/images/(V)M-52-3.jpg'
         ];
       }
     }
