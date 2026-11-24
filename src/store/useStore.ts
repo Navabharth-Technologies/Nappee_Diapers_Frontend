@@ -984,7 +984,8 @@ export const useStore = create<AppState>()(
                 if (typeof images === 'string') {
                   try { images = JSON.parse(images); } catch { images = images.split(',').map((s: string) => s.trim()).filter(Boolean); }
                 }
-                const isPantS = item.id === 'pant-s-62' || item.id === 'pant-s' || (item.name && item.name.includes('(S)') && (item.category === 'Pant-Style' || item.name.toLowerCase().includes('pant')));
+                const nameLower = (item.name || '').toLowerCase();
+                const isPantS = item.id === 'pant-s-62' || item.id === 'pant-s' || ((nameLower.includes('(s)') || nameLower.includes('small')) && (item.category === 'Pant-Style' || nameLower.includes('pant')));
                 if ((!images || images.length <= 1) && isPantS) {
                   images = [
                     item.imageurl || item.imageUrl || '/public/images/(P)S-62.jpg',

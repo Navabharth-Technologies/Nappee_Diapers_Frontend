@@ -778,7 +778,7 @@ export default function CustomerChatScreen() {
                         ) : (
                           <View style={[styles.img, { backgroundColor: p.imageFallback }]} />
                         )}
-                        {((p.images && p.images.length > 1) || p.id === 'pant-s-62' || p.id === 'pant-s' || (p.name && p.name.includes('(S)') && (p.category === 'Pant-Style' || p.name.toLowerCase().includes('pant')))) && (
+                        {((p.images && p.images.length > 1) || p.id === 'pant-s-62' || p.id === 'pant-s' || ((p.name && (p.name.includes('(S)') || p.name.toLowerCase().includes('small'))) && (p.category === 'Pant-Style' || (p.name && p.name.toLowerCase().includes('pant'))))) && (
                           <View style={styles.cardMultiPhotoBadge}>
                             <Text style={styles.cardMultiPhotoText}>📸 4 Photos</Text>
                           </View>
@@ -1017,7 +1017,8 @@ export default function CustomerChatScreen() {
               if (p.images && Array.isArray(p.images) && p.images.length > 0) {
                 return p.images;
               }
-              const isPantS = p.id === 'pant-s-62' || p.id === 'pant-s' || (p.name && p.name.includes('(S)') && (p.category === 'Pant-Style' || p.name.toLowerCase().includes('pant')));
+              const nameLower = (p.name || '').toLowerCase();
+              const isPantS = p.id === 'pant-s-62' || p.id === 'pant-s' || ((nameLower.includes('(s)') || nameLower.includes('small')) && (p.category === 'Pant-Style' || nameLower.includes('pant')));
               if (isPantS) {
                 return [
                   p.imageUrl || '/public/images/(P)S-62.jpg',
