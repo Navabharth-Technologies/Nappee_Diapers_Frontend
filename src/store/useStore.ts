@@ -69,9 +69,6 @@ interface AppState {
   removeCoupon: () => void;
   getCartTotal: () => { subtotal: number; discountAmount: number; delivery: number; total: number };
   rateDeliveryPartner: (orderId: string, rating: number) => void;
-  
-  // Backend Integration
-  fetchProducts: () => Promise<void>;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -982,13 +979,29 @@ export const useStore = create<AppState>()(
           try {
             const data = JSON.parse(text);
             if (Array.isArray(data)) {
-              const mappedData = data.map(item => ({
-                ...item,
-                sellingPrice: item.sellingprice || item.sellingPrice,
-                imageFallback: item.imagefallback || item.imageFallback,
-                imageUrl: item.imageurl || item.imageUrl,
-                stockStatus: item.stockstatus || item.stockStatus
-              }));
+              const mappedData = data.map(item => {
+                let images = item.images;
+                if (typeof images === 'string') {
+                  try { images = JSON.parse(images); } catch { images = images.split(',').map((s: string) => s.trim()).filter(Boolean); }
+                }
+                const isPantS = item.id === 'pant-s-62' || item.id === 'pant-s' || (item.name && item.name.includes('(S)') && (item.category === 'Pant-Style' || item.name.toLowerCase().includes('pant')));
+                if ((!images || images.length <= 1) && isPantS) {
+                  images = [
+                    item.imageurl || item.imageUrl || '/public/images/(P)S-62.jpg',
+                    '/public/images/(P)S-62-1.jpg',
+                    '/public/images/(P)S-62-2.jpg',
+                    '/public/images/(P)S-62-3.jpg'
+                  ];
+                }
+                return {
+                  ...item,
+                  sellingPrice: item.sellingprice || item.sellingPrice,
+                  imageFallback: item.imagefallback || item.imageFallback,
+                  imageUrl: item.imageurl || item.imageUrl,
+                  images: images,
+                  stockStatus: item.stockstatus || item.stockStatus
+                };
+              });
               set({ products: mappedData });
             } else {
               alert('Error: Data is not an array. Please check backend.');

@@ -8,6 +8,7 @@ export interface Product {
   description: string;
   imageFallback: string;
   imageUrl?: string;
+  images?: string[];
   stock: number;
   stockStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
   totalSold: number;

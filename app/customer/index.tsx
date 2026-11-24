@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Keyboard
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../src/theme/colors';
 import { useStore, getApiUrl, resolveProductImageUrl } from '../../src/store/useStore';
-import { Send, Truck, ChevronRight, X, ZoomIn } from 'lucide-react-native';
+import { Send, Truck, ChevronRight, ChevronLeft, X, ZoomIn } from 'lucide-react-native';
 import { ChatMessage, Customer, Address, Product } from '../../src/store/types';
 import { SERVICEABLE_PINCODES } from '../../src/store/mockData';
 import { useRouter } from 'expo-router';
@@ -178,7 +178,10 @@ export default function CustomerChatScreen() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [selectedProductForEnlarge, setSelectedProductForEnlarge] = useState<Product | null>(null);
   const [selectedTrialSize, setSelectedTrialSize] = useState<string>('M');
+  const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
+  const [galleryWidth, setGalleryWidth] = useState<number>(340);
   const flatListRef = useRef<FlatList>(null);
+  const galleryScrollRef = useRef<ScrollView>(null);
 
   // Find active order for the current customer
   const activeOrder = currentCustomer
@@ -759,7 +762,10 @@ export default function CustomerChatScreen() {
                   <View key={p.id} style={styles.productCard}>
                     <TouchableOpacity
                       activeOpacity={0.8}
-                      onPress={() => setSelectedProductForEnlarge(p)}
+                      onPress={() => {
+                        setSelectedProductForEnlarge(p);
+                        setActiveImageIndex(0);
+                      }}
                       style={styles.productCardTouch}
                     >
                       <View style={styles.productImgContainer}>
@@ -771,6 +777,11 @@ export default function CustomerChatScreen() {
                           />
                         ) : (
                           <View style={[styles.img, { backgroundColor: p.imageFallback }]} />
+                        )}
+                        {((p.images && p.images.length > 1) || p.id === 'pant-s-62' || p.id === 'pant-s' || (p.name && p.name.includes('(S)') && (p.category === 'Pant-Style' || p.name.toLowerCase().includes('pant')))) && (
+                          <View style={styles.cardMultiPhotoBadge}>
+                            <Text style={styles.cardMultiPhotoText}>📸 4 Photos</Text>
+                          </View>
                         )}
                         <View style={styles.zoomPill}>
                           <ZoomIn size={11} color={colors.white} />
@@ -794,6 +805,7 @@ export default function CustomerChatScreen() {
                       <TouchableOpacity style={styles.btn} onPress={() => {
                         if (isTrialOrSampleProduct(p)) {
                           setSelectedProductForEnlarge(p);
+                          setActiveImageIndex(0);
                         } else {
                           addToCart(p, 1);
                           addChatMessage({ sender: 'bot', text: `Added ${p.packSize} to your cart. 🛒`, type: 'add_to_cart_success' });
@@ -999,7 +1011,23 @@ export default function CustomerChatScreen() {
             const isTrial = isTrialOrSampleProduct(p);
             const specs = getDiaperSpecs(p, isTrial ? selectedTrialSize : undefined);
             const isOut = p.stockStatus === 'OUT_OF_STOCK';
-            const imageUrl = resolveProductImageUrl(p.imageUrl);
+            
+            // Collect all available product images for Amazon-style horizontal gallery
+            const productImages: string[] = (() => {
+              if (p.images && Array.isArray(p.images) && p.images.length > 0) {
+                return p.images;
+              }
+              const isPantS = p.id === 'pant-s-62' || p.id === 'pant-s' || (p.name && p.name.includes('(S)') && (p.category === 'Pant-Style' || p.name.toLowerCase().includes('pant')));
+              if (isPantS) {
+                return [
+                  p.imageUrl || '/public/images/(P)S-62.jpg',
+                  '/public/images/(P)S-62-1.jpg',
+                  '/public/images/(P)S-62-2.jpg',
+                  '/public/images/(P)S-62-3.jpg'
+                ];
+              }
+              return p.imageUrl ? [p.imageUrl] : [];
+            })();
             
             return (
               <View style={styles.modalCard}>
@@ -1021,16 +1049,103 @@ export default function CustomerChatScreen() {
                 </View>
 
                 <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-                  {/* Clear, High-Resolution Enlarged Image */}
-                  <View style={styles.enlargedImgWrapper}>
-                    {imageUrl ? (
-                      <Image 
-                        source={{ uri: imageUrl }} 
-                        style={styles.enlargedImg} 
-                        resizeMode="contain"
-                      />
-                    ) : (
-                      <View style={[styles.enlargedImg, { backgroundColor: p.imageFallback || colors.softPurple }]} />
+                  {/* Clear, High-Resolution Multi-Image Horizontal Scrollable Gallery */}
+                  <View 
+                    style={styles.enlargedGalleryContainer}
+                    onLayout={(e) => {
+                      const w = e.nativeEvent.layout.width;
+                      if (w > 0 && Math.abs(w - galleryWidth) > 2) {
+                        setGalleryWidth(w);
+                      }
+                    }}
+                  >
+                    <ScrollView
+                      ref={galleryScrollRef}
+                      horizontal
+                      pagingEnabled
+                      showsHorizontalScrollIndicator={false}
+                      nestedScrollEnabled={true}
+                      onMomentumScrollEnd={(e) => {
+                        const offset = e.nativeEvent.contentOffset.x;
+                        const index = Math.round(offset / (galleryWidth || 1));
+                        if (index >= 0 && index < productImages.length) {
+                          setActiveImageIndex(index);
+                        }
+                      }}
+                      style={{ width: galleryWidth, height: 260 }}
+                    >
+                      {productImages.map((imgUri, idx) => {
+                        const resolved = resolveProductImageUrl(imgUri);
+                        return (
+                          <View key={idx} style={[styles.gallerySlide, { width: galleryWidth }]}>
+                            {resolved ? (
+                              <Image 
+                                source={{ uri: resolved }} 
+                                style={styles.enlargedImg} 
+                                resizeMode="contain"
+                              />
+                            ) : (
+                              <View style={[styles.enlargedImg, { backgroundColor: p.imageFallback || colors.softPurple }]} />
+                            )}
+                          </View>
+                        );
+                      })}
+                    </ScrollView>
+
+                    {/* Photo counter pill (e.g. 1/4) */}
+                    {productImages.length > 1 && (
+                      <View style={styles.imageCounterBadge}>
+                        <Text style={styles.imageCounterText}>{activeImageIndex + 1} / {productImages.length}</Text>
+                      </View>
+                    )}
+
+                    {/* Previous image button */}
+                    {productImages.length > 1 && activeImageIndex > 0 && (
+                      <TouchableOpacity 
+                        style={[styles.galleryNavArrow, { left: 8 }]} 
+                        onPress={() => {
+                          const nextIdx = Math.max(0, activeImageIndex - 1);
+                          galleryScrollRef.current?.scrollTo({ x: nextIdx * galleryWidth, animated: true });
+                          setActiveImageIndex(nextIdx);
+                        }}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        <ChevronLeft size={20} color={colors.darkPurple} />
+                      </TouchableOpacity>
+                    )}
+
+                    {/* Next image button */}
+                    {productImages.length > 1 && activeImageIndex < productImages.length - 1 && (
+                      <TouchableOpacity 
+                        style={[styles.galleryNavArrow, { right: 8 }]} 
+                        onPress={() => {
+                          const nextIdx = Math.min(productImages.length - 1, activeImageIndex + 1);
+                          galleryScrollRef.current?.scrollTo({ x: nextIdx * galleryWidth, animated: true });
+                          setActiveImageIndex(nextIdx);
+                        }}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        <ChevronRight size={20} color={colors.darkPurple} />
+                      </TouchableOpacity>
+                    )}
+
+                    {/* Amazon-style Dot Indicators */}
+                    {productImages.length > 1 && (
+                      <View style={styles.galleryDotsContainer}>
+                        {productImages.map((_, idx) => (
+                          <TouchableOpacity
+                            key={idx}
+                            onPress={() => {
+                              galleryScrollRef.current?.scrollTo({ x: idx * galleryWidth, animated: true });
+                              setActiveImageIndex(idx);
+                            }}
+                            style={[
+                              styles.galleryDot,
+                              idx === activeImageIndex ? styles.galleryDotActive : styles.galleryDotInactive
+                            ]}
+                          />
+                        ))}
+                      </View>
                     )}
                   </View>
 
@@ -1252,8 +1367,96 @@ const styles = StyleSheet.create({
   modalCategoryBadge: { fontSize: 11, fontWeight: '700', color: colors.primary, letterSpacing: 0.5, marginBottom: 2 },
   modalProductTitle: { fontSize: 16, fontWeight: '700', color: colors.darkPurple },
   modalCloseBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#f1f5f9', justifyContent: 'center', alignItems: 'center' },
+  cardMultiPhotoBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: 'rgba(59, 7, 100, 0.85)',
+    paddingHorizontal: 6,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+    zIndex: 2,
+  },
+  cardMultiPhotoText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '700',
+  },
   modalBody: { paddingHorizontal: 18, paddingVertical: 14 },
-  enlargedImgWrapper: { width: '100%', height: 240, backgroundColor: '#f8fafc', borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', marginBottom: 14 },
+  enlargedImgWrapper: { width: '100%', height: 260, backgroundColor: '#f8fafc', borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', marginBottom: 14 },
+  enlargedGalleryContainer: {
+    width: '100%',
+    height: 260,
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    overflow: 'hidden',
+    marginBottom: 14,
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gallerySlide: {
+    height: 260,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageCounterBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    zIndex: 10,
+  },
+  imageCounterText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  galleryNavArrow: {
+    position: 'absolute',
+    top: '50%',
+    marginTop: -18,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 10,
+  },
+  galleryDotsContainer: {
+    position: 'absolute',
+    bottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    gap: 6,
+    zIndex: 10,
+  },
+  galleryDot: {
+    height: 6,
+    borderRadius: 3,
+  },
+  galleryDotActive: {
+    width: 18,
+    backgroundColor: colors.primary,
+  },
+  galleryDotInactive: {
+    width: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+  },
   enlargedImg: { width: '92%', height: '92%' },
   capacityHighlightCard: { backgroundColor: '#F3E8FF', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: '#D8B4FE', marginBottom: 12 },
   capacityHeaderRow: { flexDirection: 'row', alignItems: 'center' },
