@@ -179,9 +179,27 @@ export default function CustomerChatScreen() {
   const [selectedProductForEnlarge, setSelectedProductForEnlarge] = useState<Product | null>(null);
   const [selectedTrialSize, setSelectedTrialSize] = useState<string>('M');
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
-  const [galleryWidth, setGalleryWidth] = useState<number>(340);
+  const [isFullScreenZoom, setIsFullScreenZoom] = useState<boolean>(false);
   const flatListRef = useRef<FlatList>(null);
-  const galleryScrollRef = useRef<ScrollView>(null);
+  const galleryTouchRef = useRef<number>(0);
+
+  const getProductImageList = (p: Product | null): string[] => {
+    if (!p) return [];
+    if (p.images && Array.isArray(p.images) && p.images.length > 0) {
+      return p.images;
+    }
+    const nameLower = (p.name || '').toLowerCase();
+    const isPantS = p.id === 'pant-s-62' || p.id === 'pant-s' || ((nameLower.includes('(s)') || nameLower.includes('small')) && (p.category === 'Pant-Style' || nameLower.includes('pant')));
+    if (isPantS) {
+      return [
+        p.imageUrl || '/public/images/(P)S-62.jpg',
+        '/public/images/(P)S-62-1.jpg',
+        '/public/images/(P)S-62-2.jpg',
+        '/public/images/(P)S-62-3.jpg'
+      ];
+    }
+    return p.imageUrl ? [p.imageUrl] : [];
+  };
 
   // Find active order for the current customer
   const activeOrder = currentCustomer
@@ -778,15 +796,6 @@ export default function CustomerChatScreen() {
                         ) : (
                           <View style={[styles.img, { backgroundColor: p.imageFallback }]} />
                         )}
-                        {((p.images && p.images.length > 1) || p.id === 'pant-s-62' || p.id === 'pant-s' || ((p.name && (p.name.includes('(S)') || p.name.toLowerCase().includes('small'))) && (p.category === 'Pant-Style' || (p.name && p.name.toLowerCase().includes('pant'))))) && (
-                          <View style={styles.cardMultiPhotoBadge}>
-                            <Text style={styles.cardMultiPhotoText}>📸 4 Photos</Text>
-                          </View>
-                        )}
-                        <View style={styles.zoomPill}>
-                          <ZoomIn size={11} color={colors.white} />
-                          <Text style={styles.zoomPillText}>Enlarge</Text>
-                        </View>
                       </View>
                       <Text style={styles.pName} numberOfLines={2}>{p.name}</Text>
                       <View style={styles.pMetaRow}>
@@ -1012,23 +1021,10 @@ export default function CustomerChatScreen() {
             const specs = getDiaperSpecs(p, isTrial ? selectedTrialSize : undefined);
             const isOut = p.stockStatus === 'OUT_OF_STOCK';
             
-            // Collect all available product images for Amazon-style horizontal gallery
-            const productImages: string[] = (() => {
-              if (p.images && Array.isArray(p.images) && p.images.length > 0) {
-                return p.images;
-              }
-              const nameLower = (p.name || '').toLowerCase();
-              const isPantS = p.id === 'pant-s-62' || p.id === 'pant-s' || ((nameLower.includes('(s)') || nameLower.includes('small')) && (p.category === 'Pant-Style' || nameLower.includes('pant')));
-              if (isPantS) {
-                return [
-                  p.imageUrl || '/public/images/(P)S-62.jpg',
-                  '/public/images/(P)S-62-1.jpg',
-                  '/public/images/(P)S-62-2.jpg',
-                  '/public/images/(P)S-62-3.jpg'
-                ];
-              }
-              return p.imageUrl ? [p.imageUrl] : [];
-            })();
+            // Collect all available product images for Amazon-style gallery
+            const productImages = getProductImageList(p);
+            const currentImgUri = productImages[activeImageIndex] || productImages[0];
+            const resolvedMainImg = resolveProductImageUrl(currentImgUri);
             
             return (
               <View style={styles.modalCard}>
@@ -1050,48 +1046,40 @@ export default function CustomerChatScreen() {
                 </View>
 
                 <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-                  {/* Clear, High-Resolution Multi-Image Horizontal Scrollable Gallery */}
+                  {/* Hero Enlarged Image Viewer with Amazon-style Navigation */}
                   <View 
                     style={styles.enlargedGalleryContainer}
-                    onLayout={(e) => {
-                      const w = e.nativeEvent.layout.width;
-                      if (w > 0 && Math.abs(w - galleryWidth) > 2) {
-                        setGalleryWidth(w);
+                    onTouchStart={(e) => {
+                      (galleryTouchRef as any).current = e.nativeEvent.pageX;
+                    }}
+                    onTouchEnd={(e) => {
+                      const startX = (galleryTouchRef as any).current;
+                      if (startX !== undefined) {
+                        const diffX = e.nativeEvent.pageX - startX;
+                        if (diffX < -30 && activeImageIndex < productImages.length - 1) {
+                          setActiveImageIndex(prev => prev + 1);
+                        } else if (diffX > 30 && activeImageIndex > 0) {
+                          setActiveImageIndex(prev => prev - 1);
+                        }
                       }
                     }}
                   >
-                    <ScrollView
-                      ref={galleryScrollRef}
-                      horizontal
-                      pagingEnabled
-                      showsHorizontalScrollIndicator={false}
-                      nestedScrollEnabled={true}
-                      onMomentumScrollEnd={(e) => {
-                        const offset = e.nativeEvent.contentOffset.x;
-                        const index = Math.round(offset / (galleryWidth || 1));
-                        if (index >= 0 && index < productImages.length) {
-                          setActiveImageIndex(index);
-                        }
-                      }}
-                      style={{ width: galleryWidth, height: 260 }}
+                    {/* Main Image - Click to open full-screen zoom */}
+                    <TouchableOpacity
+                      activeOpacity={0.92}
+                      onPress={() => setIsFullScreenZoom(true)}
+                      style={styles.enlargedImgTouchArea}
                     >
-                      {productImages.map((imgUri, idx) => {
-                        const resolved = resolveProductImageUrl(imgUri);
-                        return (
-                          <View key={idx} style={[styles.gallerySlide, { width: galleryWidth }]}>
-                            {resolved ? (
-                              <Image 
-                                source={{ uri: resolved }} 
-                                style={styles.enlargedImg} 
-                                resizeMode="contain"
-                              />
-                            ) : (
-                              <View style={[styles.enlargedImg, { backgroundColor: p.imageFallback || colors.softPurple }]} />
-                            )}
-                          </View>
-                        );
-                      })}
-                    </ScrollView>
+                      {resolvedMainImg ? (
+                        <Image 
+                          source={{ uri: resolvedMainImg }} 
+                          style={styles.enlargedImg} 
+                          resizeMode="contain"
+                        />
+                      ) : (
+                        <View style={[styles.enlargedImg, { backgroundColor: p.imageFallback || colors.softPurple }]} />
+                      )}
+                    </TouchableOpacity>
 
                     {/* Photo counter pill (e.g. 1/4) */}
                     {productImages.length > 1 && (
@@ -1100,18 +1088,23 @@ export default function CustomerChatScreen() {
                       </View>
                     )}
 
+                    {/* Click-to-zoom hint */}
+                    <TouchableOpacity 
+                      style={styles.tapToZoomHint}
+                      onPress={() => setIsFullScreenZoom(true)}
+                    >
+                      <ZoomIn size={11} color="#ffffff" />
+                      <Text style={styles.tapToZoomText}>Tap to zoom</Text>
+                    </TouchableOpacity>
+
                     {/* Previous image button */}
                     {productImages.length > 1 && activeImageIndex > 0 && (
                       <TouchableOpacity 
                         style={[styles.galleryNavArrow, { left: 8 }]} 
-                        onPress={() => {
-                          const nextIdx = Math.max(0, activeImageIndex - 1);
-                          galleryScrollRef.current?.scrollTo({ x: nextIdx * galleryWidth, animated: true });
-                          setActiveImageIndex(nextIdx);
-                        }}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        onPress={() => setActiveImageIndex(prev => Math.max(0, prev - 1))}
+                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                       >
-                        <ChevronLeft size={20} color={colors.darkPurple} />
+                        <ChevronLeft size={22} color={colors.darkPurple} />
                       </TouchableOpacity>
                     )}
 
@@ -1119,14 +1112,10 @@ export default function CustomerChatScreen() {
                     {productImages.length > 1 && activeImageIndex < productImages.length - 1 && (
                       <TouchableOpacity 
                         style={[styles.galleryNavArrow, { right: 8 }]} 
-                        onPress={() => {
-                          const nextIdx = Math.min(productImages.length - 1, activeImageIndex + 1);
-                          galleryScrollRef.current?.scrollTo({ x: nextIdx * galleryWidth, animated: true });
-                          setActiveImageIndex(nextIdx);
-                        }}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        onPress={() => setActiveImageIndex(prev => Math.min(productImages.length - 1, prev + 1))}
+                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                       >
-                        <ChevronRight size={20} color={colors.darkPurple} />
+                        <ChevronRight size={22} color={colors.darkPurple} />
                       </TouchableOpacity>
                     )}
 
@@ -1136,10 +1125,7 @@ export default function CustomerChatScreen() {
                         {productImages.map((_, idx) => (
                           <TouchableOpacity
                             key={idx}
-                            onPress={() => {
-                              galleryScrollRef.current?.scrollTo({ x: idx * galleryWidth, animated: true });
-                              setActiveImageIndex(idx);
-                            }}
+                            onPress={() => setActiveImageIndex(idx)}
                             style={[
                               styles.galleryDot,
                               idx === activeImageIndex ? styles.galleryDotActive : styles.galleryDotInactive
@@ -1149,6 +1135,32 @@ export default function CustomerChatScreen() {
                       </View>
                     )}
                   </View>
+
+                  {/* Amazon-style Interactive Thumbnail Strip */}
+                  {productImages.length > 1 && (
+                    <View style={styles.thumbnailContainer}>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbnailRow}>
+                        {productImages.map((imgUri, idx) => {
+                          const resolvedThumb = resolveProductImageUrl(imgUri);
+                          const isActive = idx === activeImageIndex;
+                          return (
+                            <TouchableOpacity
+                              key={idx}
+                              onPress={() => setActiveImageIndex(idx)}
+                              style={[styles.thumbnailBox, isActive && styles.thumbnailBoxActive]}
+                              activeOpacity={0.8}
+                            >
+                              {resolvedThumb ? (
+                                <Image source={{ uri: resolvedThumb }} style={styles.thumbnailImg} resizeMode="contain" />
+                              ) : (
+                                <View style={[styles.thumbnailImg, { backgroundColor: p.imageFallback || colors.softPurple }]} />
+                              )}
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
+                    </View>
+                  )}
 
                   {/* If Trial Pack: Interactive Size Selector */}
                   {isTrial && (
@@ -1264,6 +1276,99 @@ export default function CustomerChatScreen() {
           })()}
         </View>
       </Modal>
+
+      {/* Full-Screen Lightbox Zoom Modal (Amazon Style) */}
+      <Modal
+        visible={isFullScreenZoom && !!selectedProductForEnlarge}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsFullScreenZoom(false)}
+      >
+        <View style={styles.fullScreenBackdrop}>
+          <TouchableOpacity 
+            style={styles.fullScreenDismissArea} 
+            activeOpacity={1} 
+            onPress={() => setIsFullScreenZoom(false)} 
+          />
+
+          {/* Top Bar with Title and Close Button */}
+          <View style={styles.fullScreenHeader}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={styles.fullScreenTitle} numberOfLines={1}>
+                {selectedProductForEnlarge?.name}
+              </Text>
+              <Text style={styles.fullScreenSubtitle}>
+                Image {activeImageIndex + 1} of {selectedProductForEnlarge ? getProductImageList(selectedProductForEnlarge).length : 1}
+              </Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.fullScreenCloseBtn} 
+              onPress={() => setIsFullScreenZoom(false)}
+              hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+            >
+              <X size={24} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
+
+          {/* High Resolution Centered Image */}
+          <View style={styles.fullScreenImgWrapper}>
+            {selectedProductForEnlarge && (() => {
+              const imgs = getProductImageList(selectedProductForEnlarge);
+              const uri = resolveProductImageUrl(imgs[activeImageIndex] || imgs[0]);
+              return uri ? (
+                <Image 
+                  source={{ uri }} 
+                  style={styles.fullScreenImg} 
+                  resizeMode="contain" 
+                />
+              ) : null;
+            })()}
+          </View>
+
+          {/* Previous Arrow */}
+          {selectedProductForEnlarge && getProductImageList(selectedProductForEnlarge).length > 1 && activeImageIndex > 0 && (
+            <TouchableOpacity 
+              style={[styles.fullScreenNavArrow, { left: 16 }]} 
+              onPress={() => setActiveImageIndex(prev => Math.max(0, prev - 1))}
+              hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+            >
+              <ChevronLeft size={32} color="#ffffff" />
+            </TouchableOpacity>
+          )}
+
+          {/* Next Arrow */}
+          {selectedProductForEnlarge && getProductImageList(selectedProductForEnlarge).length > 1 && activeImageIndex < getProductImageList(selectedProductForEnlarge).length - 1 && (
+            <TouchableOpacity 
+              style={[styles.fullScreenNavArrow, { right: 16 }]} 
+              onPress={() => setActiveImageIndex(prev => Math.min(getProductImageList(selectedProductForEnlarge).length - 1, prev + 1))}
+              hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+            >
+              <ChevronRight size={32} color="#ffffff" />
+            </TouchableOpacity>
+          )}
+
+          {/* Bottom Thumbnails in Full-Screen Modal */}
+          {selectedProductForEnlarge && getProductImageList(selectedProductForEnlarge).length > 1 && (
+            <View style={styles.fullScreenThumbBar}>
+              {getProductImageList(selectedProductForEnlarge).map((imgUri, idx) => {
+                const thumbUri = resolveProductImageUrl(imgUri);
+                const isActive = idx === activeImageIndex;
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    onPress={() => setActiveImageIndex(idx)}
+                    style={[styles.fullScreenThumbItem, isActive && styles.fullScreenThumbItemActive]}
+                  >
+                    {thumbUri ? (
+                      <Image source={{ uri: thumbUri }} style={styles.fullScreenThumbImg} resizeMode="contain" />
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -1348,8 +1453,6 @@ const styles = StyleSheet.create({
   productCardTouch: { flex: 1, justifyContent: 'flex-start' },
   productImgContainer: { position: 'relative', width: '100%', height: 95, backgroundColor: '#f8fafc', borderRadius: 12, overflow: 'hidden', marginBottom: 8, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
   img: { width: '100%', height: '100%' },
-  zoomPill: { position: 'absolute', bottom: 4, right: 4, backgroundColor: 'rgba(42, 26, 36, 0.75)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 3 },
-  zoomPillText: { color: '#ffffff', fontSize: 9, fontWeight: '700' },
   pName: { fontSize: 13, fontWeight: '600', marginBottom: 4, color: colors.text, height: 36 },
   pMetaRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 2 },
   pPrice: { fontSize: 15, fontWeight: '800', color: colors.darkPurple },
@@ -1368,21 +1471,6 @@ const styles = StyleSheet.create({
   modalCategoryBadge: { fontSize: 11, fontWeight: '700', color: colors.primary, letterSpacing: 0.5, marginBottom: 2 },
   modalProductTitle: { fontSize: 16, fontWeight: '700', color: colors.darkPurple },
   modalCloseBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#f1f5f9', justifyContent: 'center', alignItems: 'center' },
-  cardMultiPhotoBadge: {
-    position: 'absolute',
-    top: 6,
-    left: 6,
-    backgroundColor: 'rgba(59, 7, 100, 0.85)',
-    paddingHorizontal: 6,
-    paddingVertical: 2.5,
-    borderRadius: 6,
-    zIndex: 2,
-  },
-  cardMultiPhotoText: {
-    color: '#ffffff',
-    fontSize: 9,
-    fontWeight: '700',
-  },
   modalBody: { paddingHorizontal: 18, paddingVertical: 14 },
   enlargedImgWrapper: { width: '100%', height: 260, backgroundColor: '#f8fafc', borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', marginBottom: 14 },
   enlargedGalleryContainer: {
@@ -1393,10 +1481,63 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e2e8f0',
     overflow: 'hidden',
-    marginBottom: 14,
+    marginBottom: 10,
     position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  enlargedImgTouchArea: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tapToZoomHint: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+    zIndex: 10,
+  },
+  tapToZoomText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  thumbnailContainer: {
+    marginBottom: 14,
+  },
+  thumbnailRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 2,
+    alignItems: 'center',
+  },
+  thumbnailBox: {
+    width: 54,
+    height: 54,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  thumbnailBoxActive: {
+    borderColor: colors.primary,
+    backgroundColor: '#FAF5FF',
+    borderWidth: 2,
+  },
+  thumbnailImg: {
+    width: 46,
+    height: 46,
   },
   gallerySlide: {
     height: 260,
@@ -1459,6 +1600,97 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.25)',
   },
   enlargedImg: { width: '92%', height: '92%' },
+
+  // Full-Screen Lightbox Zoom Modal Styles
+  fullScreenBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.94)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenDismissArea: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  fullScreenHeader: {
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 20,
+  },
+  fullScreenTitle: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  fullScreenSubtitle: {
+    color: '#94a3b8',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  fullScreenCloseBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenImgWrapper: {
+    width: '90%',
+    height: '65%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenImg: {
+    width: '100%',
+    height: '100%',
+  },
+  fullScreenNavArrow: {
+    position: 'absolute',
+    top: '50%',
+    marginTop: -25,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
+  },
+  fullScreenThumbBar: {
+    position: 'absolute',
+    bottom: 30,
+    flexDirection: 'row',
+    gap: 10,
+    zIndex: 20,
+  },
+  fullScreenThumbItem: {
+    width: 52,
+    height: 52,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  fullScreenThumbItemActive: {
+    borderColor: '#ffffff',
+    borderWidth: 2.5,
+  },
+  fullScreenThumbImg: {
+    width: 44,
+    height: 44,
+  },
   capacityHighlightCard: { backgroundColor: '#F3E8FF', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: '#D8B4FE', marginBottom: 12 },
   capacityHeaderRow: { flexDirection: 'row', alignItems: 'center' },
   capacityIcon: { fontSize: 24 },

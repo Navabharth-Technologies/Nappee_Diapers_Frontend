@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import { 
+import {
   Product, Customer, Order, ChatMessage, CartItem, OrderItem,
   Address, DeliveryPartner, ChatState, OrderStatus, TrackingEvent, Coupon
 } from './types';
@@ -17,18 +17,18 @@ interface AppState {
   customers: Customer[];
   orders: Order[];
   deliveryPartners: DeliveryPartner[];
-  
+
   // Current session
   currentCustomer: Customer | null;
   currentAddress: Address | null;
-  selectedLocation: { latitude: number; longitude: number; pincode: string; addressType?: 'HOME'|'WORK'|'OTHER'; street?: string; area?: string; city?: string; } | null;
+  selectedLocation: { latitude: number; longitude: number; pincode: string; addressType?: 'HOME' | 'WORK' | 'OTHER'; street?: string; area?: string; city?: string; } | null;
   currentDeliveryPartner: DeliveryPartner | null;
   cart: CartItem[];
   chatMessages: ChatMessage[];
   chatState: ChatState;
   coupons: Coupon[];
   appliedCoupon: Coupon | null;
-  
+
   // Actions
   toggleProductStock: (productId: string) => void;
   toggleProductActive: (productId: string) => void;
@@ -41,11 +41,11 @@ interface AppState {
   setChatState: (state: ChatState) => void;
   setCurrentCustomer: (customer: Customer | null) => void;
   setCurrentAddress: (address: Address | null) => void;
-  setSelectedLocation: (location: { latitude: number; longitude: number; pincode: string; addressType?: 'HOME'|'WORK'|'OTHER' } | null) => void;
+  setSelectedLocation: (location: { latitude: number; longitude: number; pincode: string; addressType?: 'HOME' | 'WORK' | 'OTHER' } | null) => void;
   loginDeliveryPartner: (phone: string) => boolean;
   logoutDeliveryPartner: () => void;
   togglePartnerStatus: () => void;
-  createOrder: (paymentMethod: string) => Promise<string>; 
+  createOrder: (paymentMethod: string) => Promise<string>;
   markOrderAsPaid: (orderId: string, paymentMethod?: string) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   assignDeliveryPartner: (orderId: string, partnerId: string) => void;
@@ -61,20 +61,23 @@ interface AppState {
   addDeliveryPartner: (name: string, phone: string) => Promise<void>;
   removeDeliveryPartner: (id: string) => void;
   addProduct: (product: Partial<Product>) => void;
-  
+
   addAddressToCustomer: (customerId: string, address: Address) => void;
-  
+
   addCoupon: (coupon: Partial<Coupon>) => void;
   applyCoupon: (code: string) => { success: boolean; message: string };
   removeCoupon: () => void;
   getCartTotal: () => { subtotal: number; discountAmount: number; delivery: number; total: number };
   rateDeliveryPartner: (orderId: string, rating: number) => void;
+
+  // Backend Integration
+  fetchProducts: () => Promise<void>;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 const generateOrderId = (orders: any[]) => {
   const d = new Date();
-  const dateStr = `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2, '0')}${d.getDate().toString().padStart(2, '0')}`;
+  const dateStr = `${d.getFullYear()}${(d.getMonth() + 1).toString().padStart(2, '0')}${d.getDate().toString().padStart(2, '0')}`;
   const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
   return `#RL${dateStr}-${randomSuffix}`;
 };
@@ -116,7 +119,7 @@ export const useStore = create<AppState>()(
       customers: [],
       orders: [],
       deliveryPartners: [],
-      
+
       currentCustomer: null,
       currentAddress: null,
       selectedLocation: null,
@@ -134,7 +137,7 @@ export const useStore = create<AppState>()(
         }
       ],
       chatState: 'WELCOME',
-      
+
       toggleProductStock: async (productId) => {
         const p = get().products.find(x => x.id === productId);
         if (!p) return;
@@ -149,7 +152,7 @@ export const useStore = create<AppState>()(
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ stock: newStock, stockStatus: newStatus })
           });
-        } catch(err) { console.error(err); }
+        } catch (err) { console.error(err); }
       },
       toggleProductActive: async (productId) => {
         const p = get().products.find(x => x.id === productId);
@@ -164,7 +167,7 @@ export const useStore = create<AppState>()(
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ active: newActive })
           });
-        } catch(err) { console.error(err); }
+        } catch (err) { console.error(err); }
       },
       updateProductImage: async (productId, imageUrl) => {
         set((state) => ({
@@ -188,7 +191,7 @@ export const useStore = create<AppState>()(
         let newStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' = 'IN_STOCK';
         if (newStock === 0) newStatus = 'OUT_OF_STOCK';
         else if (newStock <= 10) newStatus = 'LOW_STOCK';
-        
+
         set((state) => ({
           products: state.products.map(p => p.id === productId ? { ...p, stock: newStock, stockStatus: newStatus } : p)
         }));
@@ -198,15 +201,15 @@ export const useStore = create<AppState>()(
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ stock: newStock, stockStatus: newStatus })
           });
-        } catch(err) { console.error(err); }
+        } catch (err) { console.error(err); }
       },
-      
+
       addToCart: (product, quantity = 1) => set((state) => {
         const existingItem = state.cart.find(item => item.product.id === product.id);
         if (existingItem) {
           return {
-            cart: state.cart.map(item => 
-              item.product.id === product.id 
+            cart: state.cart.map(item =>
+              item.product.id === product.id
                 ? { ...item, quantity: item.quantity + quantity }
                 : item
             )
@@ -214,21 +217,21 @@ export const useStore = create<AppState>()(
         }
         return { cart: [...state.cart, { product, quantity }] };
       }),
-      
+
       updateCartQuantity: (productId, quantity) => set((state) => {
-        const newCart = quantity <= 0 
+        const newCart = quantity <= 0
           ? state.cart.filter(item => item.product.id !== productId)
           : state.cart.map(item => item.product.id === productId ? { ...item, quantity } : item);
-        
+
         // Re-validate coupon if one is applied
         return { cart: newCart };
       }),
-      
+
       clearCart: () => set({ cart: [], appliedCoupon: null }),
-      
+
       addChatMessage: (msg) => set((state) => {
         let updatedMessages = state.chatMessages;
-        
+
         if (msg.type === 'cart') {
           updatedMessages = updatedMessages.filter(m => m.type !== 'cart');
         }
@@ -244,13 +247,13 @@ export const useStore = create<AppState>()(
           }]
         };
       }),
-      
+
       setChatState: (chatState) => set({ chatState }),
-      
+
       setCurrentCustomer: (customer) => set({ currentCustomer: customer }),
-      
+
       setCurrentAddress: (address) => set({ currentAddress: address }),
-      
+
       setSelectedLocation: (location) => set({ selectedLocation: location }),
 
       loginDeliveryPartner: (phone) => {
@@ -277,12 +280,12 @@ export const useStore = create<AppState>()(
           deliveryPartners: state.deliveryPartners.map(dp => dp.id === updatedPartner.id ? updatedPartner : dp)
         };
       }),
-      
+
       getCartTotal: () => {
         const state = get();
         const subtotal = state.cart.reduce((sum, item) => sum + (item.product.sellingPrice * item.quantity), 0);
         let discountAmount = 0;
-        
+
         if (state.appliedCoupon) {
           const c = state.appliedCoupon;
           if (c.discountType === 'PERCENTAGE') {
@@ -293,64 +296,64 @@ export const useStore = create<AppState>()(
           } else {
             discountAmount = c.discountValue;
           }
-          
+
           if (discountAmount > subtotal) {
-             discountAmount = subtotal;
+            discountAmount = subtotal;
           }
         }
-        
+
         const delivery = 0; // FREE for demo
         const total = subtotal - discountAmount + delivery;
-        
+
         return { subtotal, discountAmount, delivery, total };
       },
-      
+
       applyCoupon: (code) => {
         const state = get();
         const subtotal = state.cart.reduce((sum, item) => sum + (item.product.sellingPrice * item.quantity), 0);
         const searchCode = code.trim().toUpperCase();
-        
+
         const coupon = state.coupons.find(c => c.code.toUpperCase() === searchCode);
         if (!coupon) return { success: false, message: "Sorry, we couldn't find that coupon. Please check the code and try again." };
         if (!coupon.active) return { success: false, message: "This offer is currently unavailable." };
-        
+
         if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
           return { success: false, message: "This offer has reached its usage limit." };
         }
-        
+
         if (coupon.minimumOrderValue && subtotal < coupon.minimumOrderValue) {
           return { success: false, message: `Your order needs to be at least ₹${coupon.minimumOrderValue} to use this offer.` };
         }
-        
+
         if (coupon.type === 'USER_SPECIFIC') {
-           if (!state.currentCustomer) return { success: false, message: "Please enter your details first to check eligibility." };
-           if (!coupon.eligibleUsers || !coupon.eligibleUsers.includes(state.currentCustomer.id)) {
-             return { success: false, message: "This coupon isn't available for your account." };
-           }
+          if (!state.currentCustomer) return { success: false, message: "Please enter your details first to check eligibility." };
+          if (!coupon.eligibleUsers || !coupon.eligibleUsers.includes(state.currentCustomer.id)) {
+            return { success: false, message: "This coupon isn't available for your account." };
+          }
         }
-        
+
         if (coupon.type === 'FIRST_ORDER') {
-           if (!state.currentCustomer) return { success: false, message: "Please enter your details first to check eligibility." };
-           const hasOrders = state.orders.some(o => o.customerId === state.currentCustomer!.id && o.status !== 'CANCELLED');
-           if (hasOrders) {
-             return { success: false, message: "This coupon is valid only for your first order." };
-           }
+          if (!state.currentCustomer) return { success: false, message: "Please enter your details first to check eligibility." };
+          const hasOrders = state.orders.some(o => o.customerId === state.currentCustomer!.id && o.status !== 'CANCELLED');
+          if (hasOrders) {
+            return { success: false, message: "This coupon is valid only for your first order." };
+          }
         }
-        
+
         // Success
         set({ appliedCoupon: coupon });
         return { success: true, message: `✓ ${coupon.code} Applied` };
       },
-      
+
       removeCoupon: () => set({ appliedCoupon: null }),
-      
+
       createOrder: async (paymentMethod) => {
         const state = get();
         if (!state.currentCustomer || !state.currentAddress || state.cart.length === 0) return '';
-        
+
         const { subtotal, discountAmount, delivery, total } = get().getCartTotal();
         const now = new Date().toISOString();
-        
+
         const orderItems: OrderItem[] = state.cart.map(c => ({
           productId: c.product.id,
           productName: c.product.name,
@@ -361,7 +364,7 @@ export const useStore = create<AppState>()(
           totalPrice: c.product.sellingPrice * c.quantity,
           itemStatus: 'ORDER_PLACED'
         }));
-            const id = generateOrderId(state.orders);
+        const id = generateOrderId(state.orders);
         const newOrder: Order = {
           id,
           customerId: state.currentCustomer.id,
@@ -384,17 +387,17 @@ export const useStore = create<AppState>()(
             }
           ]
         };
-        
+
         if (state.appliedCoupon) {
-           newOrder.couponId = state.appliedCoupon.id;
-           newOrder.couponCode = state.appliedCoupon.code;
-           newOrder.discountAmount = discountAmount;
-           if (state.appliedCoupon.type === 'INFLUENCER') {
-             newOrder.influencerId = state.appliedCoupon.influencerId;
-             newOrder.influencerName = state.appliedCoupon.influencerName;
-           }
+          newOrder.couponId = state.appliedCoupon.id;
+          newOrder.couponCode = state.appliedCoupon.code;
+          newOrder.discountAmount = discountAmount;
+          if (state.appliedCoupon.type === 'INFLUENCER') {
+            newOrder.influencerId = state.appliedCoupon.influencerId;
+            newOrder.influencerName = state.appliedCoupon.influencerName;
+          }
         }
-        
+
         // POST to SQL Database
         try {
           const localUrl = getApiUrl(get().appStoreType) + '';
@@ -417,18 +420,18 @@ export const useStore = create<AppState>()(
               trackingEvents: newOrder.trackingEvents
             })
           });
-          
+
           if (!response.ok) {
-             const errorData = await response.text();
-             throw new Error(`DB Save Failed: ${errorData}`);
+            const errorData = await response.text();
+            throw new Error(`DB Save Failed: ${errorData}`);
           }
         } catch (err) {
           console.error('Failed to save order to DB:', err);
           throw err;
         }
-        
+
         newOrder.trackingEvents.forEach(te => te.orderId = newOrder.id);
-        
+
         // Update product stock and totalSold
         const updatedProducts = state.products.map(p => {
           const cartItem = state.cart.find(c => c.product.id === p.id);
@@ -437,7 +440,7 @@ export const useStore = create<AppState>()(
             let newStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' = 'IN_STOCK';
             if (newStock === 0) newStatus = 'OUT_OF_STOCK';
             else if (newStock <= 10) newStatus = 'LOW_STOCK';
-            
+
             return {
               ...p,
               stock: newStock,
@@ -447,28 +450,28 @@ export const useStore = create<AppState>()(
           }
           return p;
         });
-        
+
         // Update coupon usage
         const updatedCoupons = state.coupons.map(c => {
-           if (state.appliedCoupon && c.id === state.appliedCoupon.id) {
-              const customerUsage = { ...(c.customerUsage || {}) };
-              const customerId = state.currentCustomer!.id;
-              customerUsage[customerId] = (customerUsage[customerId] || 0) + 1;
-              return { ...c, usedCount: c.usedCount + 1, customerUsage };
-           }
-           return c;
+          if (state.appliedCoupon && c.id === state.appliedCoupon.id) {
+            const customerUsage = { ...(c.customerUsage || {}) };
+            const customerId = state.currentCustomer!.id;
+            customerUsage[customerId] = (customerUsage[customerId] || 0) + 1;
+            return { ...c, usedCount: c.usedCount + 1, customerUsage };
+          }
+          return c;
         });
-        
+
         // Update customer savings
         const updatedCustomers = state.customers.map(c => {
-           if (c.id === state.currentCustomer!.id) {
-              return { 
-                ...c, 
-                totalSavings: (c.totalSavings || 0) + discountAmount,
-                couponsUsed: (c.couponsUsed || 0) + (state.appliedCoupon ? 1 : 0)
-              };
-           }
-           return c;
+          if (c.id === state.currentCustomer!.id) {
+            return {
+              ...c,
+              totalSavings: (c.totalSavings || 0) + discountAmount,
+              couponsUsed: (c.couponsUsed || 0) + (state.appliedCoupon ? 1 : 0)
+            };
+          }
+          return c;
         });
 
         set((state) => ({
@@ -480,10 +483,10 @@ export const useStore = create<AppState>()(
           customers: updatedCustomers,
           currentCustomer: updatedCustomers.find(c => c.id === state.currentCustomer!.id) || state.currentCustomer
         }));
-        
+
         return newOrder.id;
       },
-      
+
       markOrderAsPaid: (orderId, paymentMethod = 'RAZORPAY') => {
         set((state) => {
           const updatedOrders = state.orders.map(o => {
@@ -517,7 +520,7 @@ export const useStore = create<AppState>()(
 
         let message = '';
         let chatText = '';
-        
+
         switch (status) {
           case 'ORDER_CONFIRMED':
             message = 'Order Confirmed';
@@ -556,14 +559,14 @@ export const useStore = create<AppState>()(
         let updatedCurrentPartner = state.currentDeliveryPartner;
 
         if (status === 'OUT_FOR_DELIVERY' && order.deliveryPartnerId) {
-          updatedPartners = state.deliveryPartners.map(dp => 
+          updatedPartners = state.deliveryPartners.map(dp =>
             dp.id === order.deliveryPartnerId ? { ...dp, status: 'AVAILABLE' } : dp
           );
           if (updatedCurrentPartner?.id === order.deliveryPartnerId) {
             updatedCurrentPartner = { ...updatedCurrentPartner, status: 'AVAILABLE' };
           }
         } else if (status === 'DELIVERED' && order.deliveryPartnerId) {
-          updatedPartners = state.deliveryPartners.map(dp => 
+          updatedPartners = state.deliveryPartners.map(dp =>
             dp.id === order.deliveryPartnerId ? { ...dp, status: 'AVAILABLE', activeOrders: Math.max(0, (dp.activeOrders || 1) - 1), completedOrders: (dp.completedOrders || 0) + 1 } : dp
           );
           if (updatedCurrentPartner?.id === order.deliveryPartnerId) {
@@ -602,7 +605,7 @@ export const useStore = create<AppState>()(
         // In a real app, you would POST this rating to the backend here
 
         set((state) => {
-          const updatedOrders = state.orders.map(o => 
+          const updatedOrders = state.orders.map(o =>
             o.id === orderId ? { ...o, deliveryRating: rating } : o
           );
 
@@ -627,18 +630,18 @@ export const useStore = create<AppState>()(
           };
         });
       },
-      
+
       assignDeliveryPartner: (orderId, partnerId) => {
         const state = get();
         const partner = state.deliveryPartners.find(dp => dp.id === partnerId);
-        
+
         // POST to SQL Database
         fetch(`${getApiUrl(get().appStoreType)}/api/orders/${encodeURIComponent(orderId)}/status`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'ASSIGNED', deliveryPartnerId: partnerId })
         }).catch(err => console.error('Failed to assign partner in DB:', err));
-        
+
         const newEvent: TrackingEvent = {
           id: generateId(),
           orderId,
@@ -652,9 +655,9 @@ export const useStore = create<AppState>()(
         set((state) => {
           const order = state.orders.find(o => o.id === orderId);
           return {
-            orders: state.orders.map(o => o.id === orderId ? { 
-              ...o, 
-              deliveryPartnerId: partnerId, 
+            orders: state.orders.map(o => o.id === orderId ? {
+              ...o,
+              deliveryPartnerId: partnerId,
               status: 'ASSIGNED',
               trackingEvents: [...o.trackingEvents, newEvent],
               items: o.items.map(i => ({ ...i, itemStatus: 'ASSIGNED' }))
@@ -694,13 +697,13 @@ export const useStore = create<AppState>()(
           }
           return p;
         });
-        
+
         // Restore coupon usage
         const updatedCoupons = state.coupons.map(c => {
-           if (order.couponId && c.id === order.couponId) {
-             return { ...c, usedCount: Math.max(0, c.usedCount - 1) };
-           }
-           return c;
+          if (order.couponId && c.id === order.couponId) {
+            return { ...c, usedCount: Math.max(0, c.usedCount - 1) };
+          }
+          return c;
         });
 
         set((state) => ({
@@ -718,7 +721,7 @@ export const useStore = create<AppState>()(
           get().addChatMessage({ sender: 'bot', text: `Your Nappee order ${orderId} has been cancelled successfully.`, type: 'text', orderId });
         }
       },
-      
+
       saveNewCustomer: (customerData) => {
         const id = `c_${Date.now()}`;
         const newCustomer: Customer = {
@@ -728,25 +731,25 @@ export const useStore = create<AppState>()(
           pincode: customerData.pincode || '',
           addresses: customerData.addresses || []
         };
-        
+
         // POST to SQL Database
         fetch(getApiUrl(get().appStoreType) + '/api/customers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newCustomer)
         })
-        .then(() => {
-          if (newCustomer.addresses.length > 0) {
-            newCustomer.addresses.forEach(addr => {
-              fetch(`${getApiUrl(get().appStoreType)}/api/customers/${id}/addresses`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(addr)
-              }).catch(err => console.error('Failed to save address to DB:', err));
-            });
-          }
-        })
-        .catch(err => console.error('Failed to save customer to DB:', err));
+          .then(() => {
+            if (newCustomer.addresses.length > 0) {
+              newCustomer.addresses.forEach(addr => {
+                fetch(`${getApiUrl(get().appStoreType)}/api/customers/${id}/addresses`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(addr)
+                }).catch(err => console.error('Failed to save address to DB:', err));
+              });
+            }
+          })
+          .catch(err => console.error('Failed to save customer to DB:', err));
 
         set((state) => ({
           customers: [...state.customers, newCustomer],
@@ -754,7 +757,7 @@ export const useStore = create<AppState>()(
         }));
         return newCustomer;
       },
-      
+
       addAddressToCustomer: (customerId, address) => {
         fetch(`${getApiUrl(get().appStoreType)}/api/customers/${customerId}/addresses`, {
           method: 'POST',
@@ -769,21 +772,21 @@ export const useStore = create<AppState>()(
             }
             return c;
           });
-          const updatedCurrentCustomer = state.currentCustomer?.id === customerId 
+          const updatedCurrentCustomer = state.currentCustomer?.id === customerId
             ? { ...state.currentCustomer, addresses: [...(state.currentCustomer.addresses || []), address] }
             : state.currentCustomer;
-            
+
           return { customers: updatedCustomers, currentCustomer: updatedCurrentCustomer };
         });
       },
-      
+
       demoFastForward: (orderId) => {
         const sequence: OrderStatus[] = ['ORDER_CONFIRMED', 'PREPARING', 'PACKED', 'ASSIGNED', 'OUT_FOR_DELIVERY', 'DELIVERED'];
         let delay = 3000; // 3 seconds per step
-        
+
         const runSequence = (idx: number) => {
           if (idx >= sequence.length) return;
-          
+
           const status = sequence[idx];
           if (status === 'ASSIGNED') {
             const partner = get().deliveryPartners.find(dp => dp.status === 'AVAILABLE') || mockDeliveryPartners[0];
@@ -794,7 +797,7 @@ export const useStore = create<AppState>()(
 
           setTimeout(() => runSequence(idx + 1), delay);
         };
-        
+
         runSequence(0);
       },
 
@@ -829,9 +832,9 @@ export const useStore = create<AppState>()(
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, phone })
           });
-          
+
           if (!response.ok) throw new Error('Failed to save to database');
-          
+
           const newDp = {
             id: `dp_${Date.now()}`,
             name,
@@ -842,7 +845,7 @@ export const useStore = create<AppState>()(
             rating: 5.0,
             ratingsCount: 1
           };
-          
+
           set((state) => ({
             deliveryPartners: [...state.deliveryPartners, newDp]
           }));
@@ -894,7 +897,7 @@ export const useStore = create<AppState>()(
           console.error("Failed to fetch orders from DB:", error);
         }
       },
-      
+
       fetchCoupons: async () => {
         try {
           const response = await fetch(getApiUrl(get().appStoreType) + '/api/coupons');
@@ -912,20 +915,20 @@ export const useStore = create<AppState>()(
       addProduct: async (product) => {
         const id = `prod_${Date.now()}`;
         const newProduct = {
-            id,
-            name: product.name || 'New Product',
-            packSize: product.packSize || '1',
-            mrp: product.mrp || 0,
-            sellingPrice: product.sellingPrice || 0,
-            discount: product.discount || 0,
-            description: product.description || '',
-            imageFallback: product.imageFallback || '#E2E8F0',
-            imageUrl: product.imageUrl,
-            stock: product.stock || 0,
-            stockStatus: (product.stock || 0) > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK',
-            totalSold: 0,
-            active: true,
-            category: product.category || 'Pant-Style'
+          id,
+          name: product.name || 'New Product',
+          packSize: product.packSize || '1',
+          mrp: product.mrp || 0,
+          sellingPrice: product.sellingPrice || 0,
+          discount: product.discount || 0,
+          description: product.description || '',
+          imageFallback: product.imageFallback || '#E2E8F0',
+          imageUrl: product.imageUrl,
+          stock: product.stock || 0,
+          stockStatus: (product.stock || 0) > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK',
+          totalSold: 0,
+          active: true,
+          category: product.category || 'Pant-Style'
         };
         set((state) => ({ products: [...state.products, newProduct] }));
         try {
@@ -934,23 +937,23 @@ export const useStore = create<AppState>()(
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newProduct)
           });
-        } catch(err) { console.error(err); }
+        } catch (err) { console.error(err); }
       },
 
       addCoupon: (coupon) => {
         const id = `coupon_${Date.now()}`;
         const newCoupon: Coupon = {
-            id,
-            code: coupon.code || `NEW${Date.now()}`,
-            type: coupon.type || 'GENERAL',
-            discountType: coupon.discountType || 'PERCENTAGE',
-            discountValue: coupon.discountValue || 10,
-            minimumOrderValue: coupon.minimumOrderValue,
-            maximumDiscount: coupon.maximumDiscount,
-            usageLimit: coupon.usageLimit,
-            usedCount: 0,
-            active: coupon.active ?? true,
-            influencerName: coupon.influencerName
+          id,
+          code: coupon.code || `NEW${Date.now()}`,
+          type: coupon.type || 'GENERAL',
+          discountType: coupon.discountType || 'PERCENTAGE',
+          discountValue: coupon.discountValue || 10,
+          minimumOrderValue: coupon.minimumOrderValue,
+          maximumDiscount: coupon.maximumDiscount,
+          usageLimit: coupon.usageLimit,
+          usedCount: 0,
+          active: coupon.active ?? true,
+          influencerName: coupon.influencerName
         };
 
         // POST to SQL Database
@@ -984,8 +987,7 @@ export const useStore = create<AppState>()(
                 if (typeof images === 'string') {
                   try { images = JSON.parse(images); } catch { images = images.split(',').map((s: string) => s.trim()).filter(Boolean); }
                 }
-                const nameLower = (item.name || '').toLowerCase();
-                const isPantS = item.id === 'pant-s-62' || item.id === 'pant-s' || ((nameLower.includes('(s)') || nameLower.includes('small')) && (item.category === 'Pant-Style' || nameLower.includes('pant')));
+                const isPantS = item.id === 'pant-s-62' || item.id === 'pant-s' || (item.name && item.name.includes('(S)') && (item.category === 'Pant-Style' || item.name.toLowerCase().includes('pant')));
                 if ((!images || images.length <= 1) && isPantS) {
                   images = [
                     item.imageurl || item.imageUrl || '/public/images/(P)S-62.jpg',
