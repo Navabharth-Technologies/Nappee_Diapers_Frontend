@@ -20,20 +20,32 @@ export interface DiaperSpecs {
 export interface TrialSizeInfo {
   id: string;
   label: string;
+  displayLabel?: string;
   weight: string;
   age: string;
 }
 
-export const TRIAL_SIZES: TrialSizeInfo[] = [
-  { id: 'PB', label: 'Premie (PB)', weight: '1.5 – 3 kg', age: 'Premature / Early Newborn' },
-  { id: 'NB', label: 'Newborn (NB)', weight: '<= 5 kg (Up to 5 kg)', age: '0 – 3 Months' },
-  { id: 'S', label: 'Small (S)', weight: '4 – 8 kg', age: '1 – 6 Months' },
-  { id: 'M', label: 'Medium (M)', weight: '6 – 11 kg', age: '5 – 12 Months' },
-  { id: 'L', label: 'Large (L)', weight: '9 – 14 kg', age: '9 – 24 Months' },
-  { id: 'XL', label: 'Extra Large (XL)', weight: '12 – 17 kg', age: '18 – 36 Months' },
-  { id: 'XXL', label: 'Double Extra Large (XXL)', weight: '15 – 25 kg', age: '2 – 4 Years' },
-  { id: 'XXXL', label: 'Triple Extra Large (XXXL)', weight: '18 – 35 kg', age: '3 – 5+ Years' },
+export const PANT_TRIAL_SIZES: TrialSizeInfo[] = [
+  { id: 'M', label: 'Medium (M)', displayLabel: 'M', weight: '6 – 11 kg', age: '5 – 12 Months' },
+  { id: 'L', label: 'Large (L)', displayLabel: 'L', weight: '9 – 14 kg', age: '9 – 24 Months' },
+  { id: 'XL', label: 'Extra Large (XL)', displayLabel: 'XL', weight: '12 – 17 kg', age: '18 – 36 Months' },
+  { id: 'XXL', label: 'Double Extra Large (XXL)', displayLabel: 'XXL', weight: '15 – 25 kg', age: '2 – 4 Years' },
+  { id: 'XXXL', label: 'Triple Extra Large (XXXL)', displayLabel: 'XXXL', weight: '18 – 35 kg', age: '3 – 5+ Years' },
 ];
+
+export const TAPE_TRIAL_SIZES: TrialSizeInfo[] = [
+  { id: 'PB', label: 'Premie (PB)', displayLabel: 'Premie (PB)', weight: '1.5 – 3 kg', age: 'Premature / Early Newborn' },
+  { id: 'NB', label: 'Newborn (NB)', displayLabel: 'Newborn (NB)', weight: '<= 5 kg', age: '0 – 3 Months' },
+  { id: 'S', label: 'Small (S)', displayLabel: 'S', weight: '4 – 8 kg', age: '1 – 6 Months' },
+  { id: 'M', label: 'Medium (M)', displayLabel: 'M', weight: '6 – 11 kg', age: '5 – 12 Months' },
+];
+
+export const ALL_TRIAL_SIZES: TrialSizeInfo[] = [
+  ...TAPE_TRIAL_SIZES,
+  ...PANT_TRIAL_SIZES.filter(p => !TAPE_TRIAL_SIZES.some(t => t.id === p.id))
+];
+
+export const TRIAL_SIZES: TrialSizeInfo[] = ALL_TRIAL_SIZES;
 
 export const isTrialOrSampleProduct = (product: Product): boolean => {
   const name = (product.name || '').toLowerCase();
@@ -41,16 +53,19 @@ export const isTrialOrSampleProduct = (product: Product): boolean => {
   return name.includes('sample') || name.includes('trial') || name.includes('pack of 2') || id.includes('sample') || id.includes('trial');
 };
 
-export const getDiaperSpecs = (product: Product, selectedTrialSizeId?: string): DiaperSpecs => {
+export const getDiaperSpecs = (product: Product, selectedTrialSizeId?: string, selectedTrialStyle?: 'Pant' | 'Tape'): DiaperSpecs => {
   const name = (product.name || '').toLowerCase();
   const id = (product.id || '').toLowerCase();
   const pack = product.packSize && product.packSize !== '1' ? product.packSize : 'Pack of 2';
-  const categoryStyle = product.category || (name.includes('velcro') ? 'Tape & Velcro Style' : 'Pant-Style');
+  
+  const isTape = selectedTrialStyle === 'Tape' || (!selectedTrialStyle && (product.category === 'Velcro Style' || id.includes('velcro') || name.includes('velcro') || name.includes('tape')));
+  const categoryStyle = isTape ? 'Tape & Velcro Style' : 'Pant-Style';
 
   // If this is a trial/sample pack with multiple size options
   if (isTrialOrSampleProduct(product)) {
     if (selectedTrialSizeId) {
-      const match = TRIAL_SIZES.find(s => s.id === selectedTrialSizeId);
+      const sizeList = isTape ? TAPE_TRIAL_SIZES : PANT_TRIAL_SIZES;
+      const match = sizeList.find(s => s.id === selectedTrialSizeId) || ALL_TRIAL_SIZES.find(s => s.id === selectedTrialSizeId);
       if (match) {
         return {
           size: match.label,
@@ -62,9 +77,9 @@ export const getDiaperSpecs = (product: Product, selectedTrialSizeId?: string): 
       }
     }
     return {
-      size: 'Trial Sizes (PB to XXXL)',
-      weightCapacity: '1.5 – 35 kg (Choose Size)',
-      recommendedAge: 'All Baby Stages',
+      size: isTape ? 'Premie (PB) to M' : 'M to XXXL',
+      weightCapacity: isTape ? '1.5 – 11 kg' : '6 – 35 kg',
+      recommendedAge: 'Choose Size',
       packCount: pack.includes('Pack') ? pack : `Pack of ${pack}`,
       style: categoryStyle
     };
@@ -177,6 +192,7 @@ export default function CustomerChatScreen() {
   const [tempAddress, setTempAddress] = useState<Partial<Address>>({});
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [selectedProductForEnlarge, setSelectedProductForEnlarge] = useState<Product | null>(null);
+  const [selectedTrialStyle, setSelectedTrialStyle] = useState<'Pant' | 'Tape'>('Pant');
   const [selectedTrialSize, setSelectedTrialSize] = useState<string>('M');
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
   const [isFullScreenZoom, setIsFullScreenZoom] = useState<boolean>(false);
@@ -195,7 +211,8 @@ export default function CustomerChatScreen() {
     const isSample = idLower.includes('prod_1795500818135') || idLower.includes('prod_1795500916500') || nameLower.includes('sample') || nameLower.includes('trial') || nameLower.includes('pack of 2');
 
     if (isSample) {
-      const samplePrimary = p.imageUrl || (isVelcro || idLower.includes('velcro') ? '/public/products/prod_1795500916500.jpg' : '/public/products/prod_1795500818135.jpg');
+      const isTape = selectedTrialStyle === 'Tape' || (isVelcro || idLower.includes('velcro'));
+      const samplePrimary = isTape ? '/public/products/prod_1795500916500.jpg' : '/public/products/prod_1795500818135.jpg';
       return [
         samplePrimary,
         '/public/images/(Sample)-back.jpg'
@@ -871,6 +888,11 @@ export default function CustomerChatScreen() {
                     <TouchableOpacity
                       activeOpacity={0.8}
                       onPress={() => {
+                        if (isTrialOrSampleProduct(p)) {
+                          const isTapeProduct = p.category === 'Velcro Style' || (p.id || '').toLowerCase().includes('velcro') || (p.name || '').toLowerCase().includes('velcro') || (p.name || '').toLowerCase().includes('tape');
+                          setSelectedTrialStyle(isTapeProduct ? 'Tape' : 'Pant');
+                          setSelectedTrialSize(isTapeProduct ? 'NB' : 'M');
+                        }
                         setSelectedProductForEnlarge(p);
                         setActiveImageIndex(0);
                       }}
@@ -903,6 +925,9 @@ export default function CustomerChatScreen() {
                     ) : (
                       <TouchableOpacity style={styles.btn} onPress={() => {
                         if (isTrialOrSampleProduct(p)) {
+                          const isTapeProduct = p.category === 'Velcro Style' || (p.id || '').toLowerCase().includes('velcro') || (p.name || '').toLowerCase().includes('velcro') || (p.name || '').toLowerCase().includes('tape');
+                          setSelectedTrialStyle(isTapeProduct ? 'Tape' : 'Pant');
+                          setSelectedTrialSize(isTapeProduct ? 'NB' : 'M');
                           setSelectedProductForEnlarge(p);
                           setActiveImageIndex(0);
                         } else {
@@ -1108,7 +1133,7 @@ export default function CustomerChatScreen() {
           {selectedProductForEnlarge && (() => {
             const p = selectedProductForEnlarge;
             const isTrial = isTrialOrSampleProduct(p);
-            const specs = getDiaperSpecs(p, isTrial ? selectedTrialSize : undefined);
+            const specs = getDiaperSpecs(p, isTrial ? selectedTrialSize : undefined, isTrial ? selectedTrialStyle : undefined);
             const isOut = p.stockStatus === 'OUT_OF_STOCK';
             
             // Collect all available product images for Amazon-style gallery
@@ -1121,9 +1146,11 @@ export default function CustomerChatScreen() {
                 {/* Header with Title and Close Button */}
                 <View style={styles.modalHeader}>
                   <View style={{ flex: 1, paddingRight: 8 }}>
-                    <Text style={styles.modalCategoryBadge}>{specs.style.toUpperCase()}</Text>
+                    <Text style={styles.modalCategoryBadge}>
+                      {isTrial ? (selectedTrialStyle === 'Pant' ? 'PANT-STYLE' : 'TAPE & VELCRO STYLE') : specs.style.toUpperCase()}
+                    </Text>
                     <Text style={styles.modalProductTitle} numberOfLines={2}>
-                      {isTrial ? `${p.name} (Size ${selectedTrialSize})` : p.name}
+                      {isTrial ? `Nappee Imported Premium Baby Diapers - 2 Piece Trial Pack` : p.name}
                     </Text>
                   </View>
                   <TouchableOpacity 
@@ -1252,25 +1279,76 @@ export default function CustomerChatScreen() {
                     </View>
                   )}
 
-                  {/* If Trial Pack: Interactive Size Selector */}
+                  {/* If Trial Pack: Style & Size Selector (Pant vs Tape) */}
                   {isTrial && (
-                    <View style={styles.trialSizeSection}>
-                      <Text style={styles.trialSizeHeader}>Select Trial Size (Pack of 2):</Text>
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trialSizeRow}>
-                        {TRIAL_SIZES.map(item => {
-                          const active = selectedTrialSize === item.id;
-                          return (
-                            <TouchableOpacity
-                              key={item.id}
-                              style={[styles.trialChip, active && styles.trialChipActive]}
-                              onPress={() => setSelectedTrialSize(item.id)}
-                            >
-                              <Text style={[styles.trialChipTitle, active && styles.trialChipTitleActive]}>{item.id}</Text>
-                              <Text style={[styles.trialChipWeight, active && styles.trialChipWeightActive]}>{item.weight.replace(' (Up to 5 kg)', '')}</Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </ScrollView>
+                    <View style={styles.trialContainer}>
+                      {/* Style Selector: [ Pant ] [ Tape ] */}
+                      <View style={styles.trialStyleSection}>
+                        <Text style={styles.trialSectionLabel}>Style</Text>
+                        <View style={styles.trialStyleRow}>
+                          <TouchableOpacity
+                            style={[
+                              styles.trialStyleBtn,
+                              selectedTrialStyle === 'Pant' && styles.trialStyleBtnActive
+                            ]}
+                            onPress={() => {
+                              setSelectedTrialStyle('Pant');
+                              if (!PANT_TRIAL_SIZES.some(s => s.id === selectedTrialSize)) {
+                                setSelectedTrialSize('M');
+                              }
+                            }}
+                          >
+                            <Text style={[
+                              styles.trialStyleBtnText,
+                              selectedTrialStyle === 'Pant' && styles.trialStyleBtnTextActive
+                            ]}>
+                              Pant
+                            </Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={[
+                              styles.trialStyleBtn,
+                              selectedTrialStyle === 'Tape' && styles.trialStyleBtnActive
+                            ]}
+                            onPress={() => {
+                              setSelectedTrialStyle('Tape');
+                              if (!TAPE_TRIAL_SIZES.some(s => s.id === selectedTrialSize)) {
+                                setSelectedTrialSize('NB');
+                              }
+                            }}
+                          >
+                            <Text style={[
+                              styles.trialStyleBtnText,
+                              selectedTrialStyle === 'Tape' && styles.trialStyleBtnTextActive
+                            ]}>
+                              Tape
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+
+                      {/* Size Selector for the chosen style */}
+                      <View style={styles.trialSizeSection}>
+                        <Text style={styles.trialSectionLabel}>Size</Text>
+                        <View style={styles.trialSizePillContainer}>
+                          {(selectedTrialStyle === 'Pant' ? PANT_TRIAL_SIZES : TAPE_TRIAL_SIZES).map(item => {
+                            const active = selectedTrialSize === item.id;
+                            const displayTxt = item.displayLabel || item.id;
+                            return (
+                              <TouchableOpacity
+                                key={item.id}
+                                style={[styles.trialPill, active && styles.trialPillActive]}
+                                onPress={() => setSelectedTrialSize(item.id)}
+                              >
+                                <Text style={[styles.trialPillText, active && styles.trialPillTextActive]}>
+                                  {displayTxt}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      </View>
                     </View>
                   )}
 
@@ -1341,10 +1419,12 @@ export default function CustomerChatScreen() {
                     <TouchableOpacity 
                       style={styles.modalAddToCartBtn}
                       onPress={() => {
+                        const styleLabel = selectedTrialStyle === 'Pant' ? 'Pant-Style' : 'Tape Style';
                         const cartProduct = isTrial ? {
                           ...p,
-                          name: `${p.name} - Size ${selectedTrialSize} (${specs.weightCapacity})`,
-                          packSize: `Pack of 2 (${selectedTrialSize})`
+                          name: `Nappee 2 Piece Trial Pack - ${styleLabel} (${specs.size})`,
+                          packSize: `Pack of 2 (${selectedTrialSize})`,
+                          category: selectedTrialStyle === 'Pant' ? 'Pant-Style' : 'Velcro Style'
                         } : p;
                         addToCart(cartProduct, 1);
                         addChatMessage({ 
@@ -1356,7 +1436,7 @@ export default function CustomerChatScreen() {
                       }}
                     >
                       <Text style={styles.modalAddToCartBtnText}>
-                        {isTrial ? `🛒 Add Size ${selectedTrialSize} to Cart (₹${p.sellingPrice})` : `🛒 Add to Cart (₹${p.sellingPrice})`}
+                        {isTrial ? `🛒 Add ${selectedTrialStyle} (${selectedTrialSize}) to Cart (₹${p.sellingPrice})` : `🛒 Add to Cart (₹${p.sellingPrice})`}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -1832,49 +1912,74 @@ const styles = StyleSheet.create({
   linkText: { color: colors.primary, fontWeight: '700' },
   inlineCheckoutBtn: { marginTop: 12, backgroundColor: colors.primary, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 24, alignSelf: 'flex-start', shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 4 },
   inlineCheckoutBtnText: { color: colors.white, fontWeight: '700', fontSize: 15 },
-  trialSizeSection: {
+  trialContainer: {
+    marginBottom: 14,
+  },
+  trialStyleSection: {
     marginBottom: 12,
   },
-  trialSizeHeader: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.darkPurple,
-    marginBottom: 8,
-  },
-  trialSizeRow: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingBottom: 4,
-  },
-  trialChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.white,
-    alignItems: 'center',
-    minWidth: 62,
-  },
-  trialChipActive: {
-    borderColor: colors.primary,
-    backgroundColor: '#FDF2F8',
-  },
-  trialChipTitle: {
+  trialSectionLabel: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
     color: colors.text,
+    marginBottom: 8,
+    letterSpacing: 0.2,
   },
-  trialChipTitleActive: {
-    color: colors.primary,
+  trialStyleRow: {
+    flexDirection: 'row',
+    gap: 10,
   },
-  trialChipWeight: {
-    fontSize: 10,
-    color: colors.mutedText,
-    marginTop: 2,
+  trialStyleBtn: {
+    paddingVertical: 9,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trialStyleBtnActive: {
+    borderColor: colors.primary,
+    backgroundColor: '#FAF5FF',
+  },
+  trialStyleBtnText: {
+    fontSize: 14,
     fontWeight: '600',
+    color: '#4A5568',
   },
-  trialChipWeightActive: {
+  trialStyleBtnTextActive: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  trialSizeSection: {
+    marginBottom: 6,
+  },
+  trialSizePillContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  trialPill: {
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trialPillActive: {
+    borderColor: colors.primary,
+    backgroundColor: '#FAF5FF',
+  },
+  trialPillText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#4A5568',
+  },
+  trialPillTextActive: {
     color: colors.primary,
     fontWeight: '700',
   }
