@@ -17,42 +17,90 @@ export interface DiaperSpecs {
   style: string;
 }
 
-export const getDiaperSpecs = (product: Product): DiaperSpecs => {
+export interface TrialSizeInfo {
+  id: string;
+  label: string;
+  weight: string;
+  age: string;
+}
+
+export const TRIAL_SIZES: TrialSizeInfo[] = [
+  { id: 'PB', label: 'Premie (PB)', weight: '1.5 – 3 kg', age: 'Premature / Early Newborn' },
+  { id: 'NB', label: 'Newborn (NB)', weight: '<= 5 kg (Up to 5 kg)', age: '0 – 3 Months' },
+  { id: 'S', label: 'Small (S)', weight: '4 – 8 kg', age: '1 – 6 Months' },
+  { id: 'M', label: 'Medium (M)', weight: '6 – 11 kg', age: '5 – 12 Months' },
+  { id: 'L', label: 'Large (L)', weight: '9 – 14 kg', age: '9 – 24 Months' },
+  { id: 'XL', label: 'Extra Large (XL)', weight: '12 – 17 kg', age: '18 – 36 Months' },
+  { id: 'XXL', label: 'Double Extra Large (XXL)', weight: '15 – 25 kg', age: '2 – 4 Years' },
+  { id: 'XXXL', label: 'Triple Extra Large (XXXL)', weight: '18 – 35 kg', age: '3 – 5+ Years' },
+];
+
+export const isTrialOrSampleProduct = (product: Product): boolean => {
   const name = (product.name || '').toLowerCase();
   const id = (product.id || '').toLowerCase();
-  const pack = product.packSize || '';
+  return name.includes('sample') || name.includes('trial') || name.includes('pack of 2') || id.includes('sample') || id.includes('trial');
+};
 
-  // Premie (PB)
+export const getDiaperSpecs = (product: Product, selectedTrialSizeId?: string): DiaperSpecs => {
+  const name = (product.name || '').toLowerCase();
+  const id = (product.id || '').toLowerCase();
+  const pack = product.packSize && product.packSize !== '1' ? product.packSize : 'Pack of 2';
+  const categoryStyle = product.category || (name.includes('velcro') ? 'Tape & Velcro Style' : 'Pant-Style');
+
+  // If this is a trial/sample pack with multiple size options
+  if (isTrialOrSampleProduct(product)) {
+    if (selectedTrialSizeId) {
+      const match = TRIAL_SIZES.find(s => s.id === selectedTrialSizeId);
+      if (match) {
+        return {
+          size: match.label,
+          weightCapacity: match.weight,
+          recommendedAge: match.age,
+          packCount: pack.includes('Pack') ? pack : `Pack of ${pack}`,
+          style: categoryStyle
+        };
+      }
+    }
+    return {
+      size: 'Trial Sizes (PB to XXXL)',
+      weightCapacity: '1.5 – 35 kg (Choose Size)',
+      recommendedAge: 'All Baby Stages',
+      packCount: pack.includes('Pack') ? pack : `Pack of ${pack}`,
+      style: categoryStyle
+    };
+  }
+
+  // Premie (PB): 1.5 - 3 kg
   if (id.includes('pb') || name.includes('premie') || name.includes('premature') || name.includes('(pb)')) {
     return {
       size: 'Premie (PB)',
-      weightCapacity: 'Up to 3 kg (0 – 3 kg)',
+      weightCapacity: '1.5 – 3 kg',
       recommendedAge: 'Premature / Early Newborn',
       packCount: pack || '30 pcs',
       style: 'Tape & Velcro Style'
     };
   }
-  // Newborn (NB)
+  // Newborn (NB): <= 5 kg
   if (id.includes('nb') || name.includes('newborn') || name.includes('(nb)')) {
     return {
       size: 'Newborn (NB)',
-      weightCapacity: 'Up to 5 kg (0 – 5 kg)',
+      weightCapacity: '<= 5 kg (Up to 5 kg)',
       recommendedAge: '0 – 3 Months',
       packCount: pack || '36 & 72 pcs',
       style: 'Tape & Velcro Style'
     };
   }
-  // XXXL
+  // XXXL: 18 - 35 kg
   if (id.includes('xxxl') || name.includes('xxxl') || name.includes('triple extra large')) {
     return {
       size: 'Triple Extra Large (XXXL)',
-      weightCapacity: '18 – 30+ kg',
+      weightCapacity: '18 – 35 kg',
       recommendedAge: '3 – 5+ Years',
       packCount: pack || '40 pcs',
       style: product.category || 'Pant-Style'
     };
   }
-  // XXL
+  // XXL: 15 - 25 kg
   if (id.includes('xxl') || name.includes('xxl') || name.includes('double extra large')) {
     return {
       size: 'Double Extra Large (XXL)',
@@ -62,7 +110,7 @@ export const getDiaperSpecs = (product: Product): DiaperSpecs => {
       style: product.category || 'Pant-Style'
     };
   }
-  // XL
+  // XL: 12 - 17 kg
   if (id.includes('xl') || name.includes('extra large') || name.includes('(xl)')) {
     return {
       size: 'Extra Large (XL)',
@@ -72,7 +120,7 @@ export const getDiaperSpecs = (product: Product): DiaperSpecs => {
       style: product.category || 'Pant-Style'
     };
   }
-  // Large (L)
+  // Large (L): 9 - 14 kg
   if (id.includes('-l-') || name.includes('large') || name.includes('(l)')) {
     return {
       size: 'Large (L)',
@@ -82,17 +130,17 @@ export const getDiaperSpecs = (product: Product): DiaperSpecs => {
       style: product.category || 'Pant-Style'
     };
   }
-  // Medium (M)
+  // Medium (M): 6 - 11 kg
   if (id.includes('-m-') || name.includes('medium') || name.includes('(m)')) {
     return {
       size: 'Medium (M)',
-      weightCapacity: '7 – 12 kg',
+      weightCapacity: '6 – 11 kg',
       recommendedAge: '5 – 12 Months',
       packCount: pack || (id.includes('velcro') ? '52 pcs' : '56 pcs'),
       style: id.includes('velcro') ? 'Tape & Velcro Style' : 'Pant-Style'
     };
   }
-  // Small (S)
+  // Small (S): 4 - 8 kg
   if (id.includes('-s-') || name.includes('small') || name.includes('(s)')) {
     return {
       size: 'Small (S)',
@@ -104,11 +152,11 @@ export const getDiaperSpecs = (product: Product): DiaperSpecs => {
   }
 
   return {
-    size: product.packSize || 'Standard Size',
+    size: pack || 'Standard Size',
     weightCapacity: 'Standard Fit',
     recommendedAge: 'Baby & Toddler',
-    packCount: pack || 'Standard Pack',
-    style: product.category || 'Diaper'
+    packCount: pack || 'Pack of 2',
+    style: categoryStyle
   };
 };
 
@@ -129,6 +177,7 @@ export default function CustomerChatScreen() {
   const [tempAddress, setTempAddress] = useState<Partial<Address>>({});
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [selectedProductForEnlarge, setSelectedProductForEnlarge] = useState<Product | null>(null);
+  const [selectedTrialSize, setSelectedTrialSize] = useState<string>('M');
   const flatListRef = useRef<FlatList>(null);
 
   // Find active order for the current customer
@@ -743,10 +792,14 @@ export default function CustomerChatScreen() {
                       <Text style={styles.outOfStockText}>Currently Out of Stock</Text>
                     ) : (
                       <TouchableOpacity style={styles.btn} onPress={() => {
-                        addToCart(p, 1);
-                        addChatMessage({ sender: 'bot', text: `Added ${p.packSize} to your cart. 🛒`, type: 'add_to_cart_success' });
+                        if (isTrialOrSampleProduct(p)) {
+                          setSelectedProductForEnlarge(p);
+                        } else {
+                          addToCart(p, 1);
+                          addChatMessage({ sender: 'bot', text: `Added ${p.packSize} to your cart. 🛒`, type: 'add_to_cart_success' });
+                        }
                       }}>
-                        <Text style={styles.btnText}>Add to Cart</Text>
+                        <Text style={styles.btnText}>{isTrialOrSampleProduct(p) ? 'Select Size ➔' : 'Add to Cart'}</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -943,7 +996,8 @@ export default function CustomerChatScreen() {
           />
           {selectedProductForEnlarge && (() => {
             const p = selectedProductForEnlarge;
-            const specs = getDiaperSpecs(p);
+            const isTrial = isTrialOrSampleProduct(p);
+            const specs = getDiaperSpecs(p, isTrial ? selectedTrialSize : undefined);
             const isOut = p.stockStatus === 'OUT_OF_STOCK';
             const imageUrl = resolveProductImageUrl(p.imageUrl);
             
@@ -953,7 +1007,9 @@ export default function CustomerChatScreen() {
                 <View style={styles.modalHeader}>
                   <View style={{ flex: 1, paddingRight: 8 }}>
                     <Text style={styles.modalCategoryBadge}>{specs.style.toUpperCase()}</Text>
-                    <Text style={styles.modalProductTitle} numberOfLines={2}>{p.name}</Text>
+                    <Text style={styles.modalProductTitle} numberOfLines={2}>
+                      {isTrial ? `${p.name} (Size ${selectedTrialSize})` : p.name}
+                    </Text>
                   </View>
                   <TouchableOpacity 
                     style={styles.modalCloseBtn}
@@ -978,6 +1034,28 @@ export default function CustomerChatScreen() {
                     )}
                   </View>
 
+                  {/* If Trial Pack: Interactive Size Selector */}
+                  {isTrial && (
+                    <View style={styles.trialSizeSection}>
+                      <Text style={styles.trialSizeHeader}>Select Trial Size (Pack of 2):</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trialSizeRow}>
+                        {TRIAL_SIZES.map(item => {
+                          const active = selectedTrialSize === item.id;
+                          return (
+                            <TouchableOpacity
+                              key={item.id}
+                              style={[styles.trialChip, active && styles.trialChipActive]}
+                              onPress={() => setSelectedTrialSize(item.id)}
+                            >
+                              <Text style={[styles.trialChipTitle, active && styles.trialChipTitleActive]}>{item.id}</Text>
+                              <Text style={[styles.trialChipWeight, active && styles.trialChipWeightActive]}>{item.weight.replace(' (Up to 5 kg)', '')}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
+                    </View>
+                  )}
+
                   {/* Highlighted Baby Weight Capacity Card */}
                   <View style={styles.capacityHighlightCard}>
                     <View style={styles.capacityHeaderRow}>
@@ -988,7 +1066,7 @@ export default function CustomerChatScreen() {
                       </View>
                     </View>
                     <Text style={styles.capacitySubtext}>
-                      Specially crafted for baby comfort, leak protection & gentle fit for this weight range.
+                      {isTrial ? 'Trial pack of 2 diapers perfectly sized to test absorbency, comfort & fit for your baby.' : 'Specially crafted for baby comfort, leak protection & gentle fit for this weight range.'}
                     </Text>
                   </View>
 
@@ -1045,12 +1123,23 @@ export default function CustomerChatScreen() {
                     <TouchableOpacity 
                       style={styles.modalAddToCartBtn}
                       onPress={() => {
-                        addToCart(p, 1);
-                        addChatMessage({ sender: 'bot', text: `Added ${p.packSize} to your cart. 🛒`, type: 'add_to_cart_success' });
+                        const cartProduct = isTrial ? {
+                          ...p,
+                          name: `${p.name} - Size ${selectedTrialSize} (${specs.weightCapacity})`,
+                          packSize: `Pack of 2 (${selectedTrialSize})`
+                        } : p;
+                        addToCart(cartProduct, 1);
+                        addChatMessage({ 
+                          sender: 'bot', 
+                          text: `Added ${cartProduct.name} to your cart. 🛒`, 
+                          type: 'add_to_cart_success' 
+                        });
                         setSelectedProductForEnlarge(null);
                       }}
                     >
-                      <Text style={styles.modalAddToCartBtnText}>🛒 Add to Cart (₹{p.sellingPrice})</Text>
+                      <Text style={styles.modalAddToCartBtnText}>
+                        {isTrial ? `🛒 Add Size ${selectedTrialSize} to Cart (₹${p.sellingPrice})` : `🛒 Add to Cart (₹${p.sellingPrice})`}
+                      </Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -1216,5 +1305,51 @@ const styles = StyleSheet.create({
   linkCard: { marginTop: 8, backgroundColor: colors.softPurple, padding: 12, borderRadius: 16, alignItems: 'center' },
   linkText: { color: colors.primary, fontWeight: '700' },
   inlineCheckoutBtn: { marginTop: 12, backgroundColor: colors.primary, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 24, alignSelf: 'flex-start', shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 4 },
-  inlineCheckoutBtnText: { color: colors.white, fontWeight: '700', fontSize: 15 }
+  inlineCheckoutBtnText: { color: colors.white, fontWeight: '700', fontSize: 15 },
+  trialSizeSection: {
+    marginBottom: 12,
+  },
+  trialSizeHeader: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.darkPurple,
+    marginBottom: 8,
+  },
+  trialSizeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingBottom: 4,
+  },
+  trialChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    minWidth: 62,
+  },
+  trialChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: '#FDF2F8',
+  },
+  trialChipTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  trialChipTitleActive: {
+    color: colors.primary,
+  },
+  trialChipWeight: {
+    fontSize: 10,
+    color: colors.mutedText,
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  trialChipWeightActive: {
+    color: colors.primary,
+    fontWeight: '700',
+  }
 });

@@ -14,6 +14,7 @@ export default function OwnerProductsScreen() {
   const [name, setName] = React.useState('');
   const [price, setPrice] = React.useState('');
   const [stock, setStock] = React.useState('');
+  const [packSize, setPackSize] = React.useState('Pack of 2');
   const [imageUri, setImageUri] = React.useState<string | null>(null);
   const [category, setCategory] = React.useState('Pant-Style');
 
@@ -52,13 +53,14 @@ export default function OwnerProductsScreen() {
         sellingPrice: Number(price) || 0,
         mrp: Number(price) + 20, // Add arbitrary MRP difference
         stock: Number(stock) || 0,
-        packSize: '1',
+        packSize: packSize.trim() || 'Pack of 2',
         imageUrl: imageUri || undefined,
         category,
       });
       setName('');
       setPrice('');
       setStock('');
+      setPackSize('Pack of 2');
       setCategory('Pant-Style');
       setImageUri(null);
       setModalVisible(false);
@@ -183,6 +185,14 @@ export default function OwnerProductsScreen() {
                 <Text style={[styles.categoryText, category === 'Velcro Style' && styles.categoryTextActive]}>Velcro Style</Text>
               </TouchableOpacity>
             </View>
+
+            <Text style={styles.inputLabel}>Pack Size / Count</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. Pack of 2, 52 pcs, 72 pcs"
+              value={packSize}
+              onChangeText={setPackSize}
+            />
 
             <View style={{ flexDirection: 'row', gap: 16 }}>
               <View style={{ flex: 1 }}>
