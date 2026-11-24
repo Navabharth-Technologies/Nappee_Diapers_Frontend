@@ -86,6 +86,30 @@ export const getApiUrl = (storeType: 'diapers' | 'DIAPERS' = 'diapers') => {
   return 'https://nappee-cmfab8eyb3d9f0cf.centralindia-01.azurewebsites.net';
 };
 
+/**
+ * Resolves a product image URL to a valid image source URI.
+ * Handles:
+ * - Full remote HTTP/HTTPS URLs (e.g. https://...)
+ * - Base64 Data URIs (e.g. data:image/...)
+ * - Local file/content URIs (e.g. file://..., content://...)
+ * - Relative backend static paths (e.g. /public/images/... or public/products/...)
+ */
+export const resolveProductImageUrl = (url?: string | null): string | null => {
+  if (!url || typeof url !== 'string' || !url.trim()) return null;
+  const cleanUrl = url.trim();
+  if (
+    cleanUrl.startsWith('http://') ||
+    cleanUrl.startsWith('https://') ||
+    cleanUrl.startsWith('data:') ||
+    cleanUrl.startsWith('file:') ||
+    cleanUrl.startsWith('content:')
+  ) {
+    return cleanUrl;
+  }
+  const base = getApiUrl('diapers');
+  return cleanUrl.startsWith('/') ? `${base}${cleanUrl}` : `${base}/${cleanUrl}`;
+};
+
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({

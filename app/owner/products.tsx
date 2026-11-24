@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, SectionList, Switch, TouchableOpacity, Modal, TextInput, Image } from 'react-native';
 import { colors } from '../../src/theme/colors';
-import { useStore, getApiUrl } from '../../src/store/useStore';
+import { useStore, getApiUrl, resolveProductImageUrl } from '../../src/store/useStore';
 import { Plus, Minus, ArrowLeft, ImagePlus } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -22,7 +22,7 @@ export default function OwnerProductsScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.8,
+      quality: 0.6,
       base64: true,
     });
 
@@ -36,7 +36,7 @@ export default function OwnerProductsScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.8,
+      quality: 0.6,
       base64: true,
     });
 
@@ -74,8 +74,8 @@ export default function OwnerProductsScreen() {
       <View style={styles.card}>
         <View style={styles.cardTop}>
           <TouchableOpacity onPress={() => handleChangeImage(item.id)} style={styles.imageWrapper}>
-            {item.imageUrl ? (
-              <Image source={{ uri: item.imageUrl.startsWith('http') ? item.imageUrl : getApiUrl('diapers') + item.imageUrl }} style={styles.imagePlaceholder} />
+            {resolveProductImageUrl(item.imageUrl) ? (
+              <Image source={{ uri: resolveProductImageUrl(item.imageUrl)! }} style={styles.imagePlaceholder} />
             ) : (
               <View style={[styles.imagePlaceholder, { backgroundColor: item.imageFallback }]}>
                 <ImagePlus size={20} color="rgba(255,255,255,0.7)" />

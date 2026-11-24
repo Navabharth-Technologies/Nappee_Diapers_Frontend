@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Image, Linking, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../src/theme/colors';
-import { useStore, getApiUrl } from '../../src/store/useStore';
+import { useStore, getApiUrl, resolveProductImageUrl } from '../../src/store/useStore';
 import { Send, Truck, ChevronRight, X, ZoomIn } from 'lucide-react-native';
 import { ChatMessage, Customer, Address, Product } from '../../src/store/types';
 import { SERVICEABLE_PINCODES } from '../../src/store/mockData';
@@ -714,9 +714,9 @@ export default function CustomerChatScreen() {
                       style={styles.productCardTouch}
                     >
                       <View style={styles.productImgContainer}>
-                        {p.imageUrl ? (
+                        {resolveProductImageUrl(p.imageUrl) ? (
                           <Image 
-                            source={{ uri: p.imageUrl.startsWith('http') ? p.imageUrl : getApiUrl('diapers') + p.imageUrl }} 
+                            source={{ uri: resolveProductImageUrl(p.imageUrl)! }} 
                             style={styles.img} 
                             resizeMode="contain"
                           />
@@ -945,7 +945,7 @@ export default function CustomerChatScreen() {
             const p = selectedProductForEnlarge;
             const specs = getDiaperSpecs(p);
             const isOut = p.stockStatus === 'OUT_OF_STOCK';
-            const imageUrl = p.imageUrl ? (p.imageUrl.startsWith('http') ? p.imageUrl : getApiUrl('diapers') + p.imageUrl) : null;
+            const imageUrl = resolveProductImageUrl(p.imageUrl);
             
             return (
               <View style={styles.modalCard}>
