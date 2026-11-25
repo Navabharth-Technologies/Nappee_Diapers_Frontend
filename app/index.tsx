@@ -21,7 +21,7 @@ export default function RoleSelectionScreen() {
           <View style={styles.iconContainer}>
             <Image
               source={require('../assets/logo.png')}
-              style={{ width: 180, height: 180 }}
+              style={{ width: 220, height: 180 }}
               resizeMode="contain"
             />
           </View>
@@ -73,7 +73,7 @@ export default function RoleSelectionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.white,
   },
   content: {
     flex: 1,
