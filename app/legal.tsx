@@ -411,14 +411,14 @@ export default function LegalAndPoliciesScreen() {
 
               <TouchableOpacity
                 style={styles.contactItem}
-                onPress={() => openUrl('mailto:support@nappeediapers.com')}
+                onPress={() => openUrl('mailto:nappeediaper@gmail.com')}
               >
                 <View style={styles.contactIconContainer}>
                   <Mail size={18} color={colors.primary} />
                 </View>
                 <View style={styles.contactTextContainer}>
                   <Text style={styles.contactLabel}>Email Support</Text>
-                  <Text style={styles.contactValue}>support@nappeediapers.com</Text>
+                  <Text style={styles.contactValue}>nappeediaper@gmail.com</Text>
                 </View>
               </TouchableOpacity>
 
