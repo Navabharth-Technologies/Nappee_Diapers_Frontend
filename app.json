@@ -3,7 +3,7 @@
     "name": "Nappee Diapers",
     "slug": "Nappee_Diapers",
     "scheme": "nappeediapers",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -22,7 +22,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.navabharath.nappeediapers",
-      "versionCode": 2,
+      "versionCode": 3,
       "config": {
         "googleMaps": {
           "apiKey": "dummy_key_to_prevent_crash_nappee_diapers"

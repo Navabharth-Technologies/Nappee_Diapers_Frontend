@@ -385,7 +385,7 @@ export default function LegalAndPoliciesScreen() {
                 Premium Baby Diapers & Sanitary Hygiene Products
               </Text>
               <View style={styles.versionBadge}>
-                <Text style={styles.versionText}>Version 1.0.0 (Release Build)</Text>
+                <Text style={styles.versionText}>Version 1.0.2 (Release Build)</Text>
               </View>
             </View>
 
