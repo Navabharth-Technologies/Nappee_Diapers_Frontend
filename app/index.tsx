@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { colors } from '../src/theme/colors';
 import { useStore } from '../src/store/useStore';
 import { ShieldCheck } from 'lucide-react-native';
+import { NAPPEE_LOGO_SOURCE } from '../src/constants/logo';
 
 export default function RoleSelectionScreen() {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function RoleSelectionScreen() {
         <View style={styles.header}>
           <View style={styles.iconContainer}>
             <Image
-              source={require('../assets/logo.png')}
+              source={NAPPEE_LOGO_SOURCE}
               style={{ width: 220, height: 180 }}
               resizeMode="contain"
             />

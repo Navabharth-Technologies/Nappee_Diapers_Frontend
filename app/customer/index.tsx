@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, Keyboard
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../src/theme/colors';
 import { useStore, getApiUrl, resolveProductImageUrl } from '../../src/store/useStore';
+import { NAPPEE_LOGO_SOURCE } from '../../src/constants/logo';
 import { Send, Truck, ChevronRight, ChevronLeft, X, ZoomIn } from 'lucide-react-native';
 import { ChatMessage, Customer, Address, Product } from '../../src/store/types';
 import { SERVICEABLE_PINCODES } from '../../src/store/mockData';
@@ -758,7 +759,7 @@ export default function CustomerChatScreen() {
         {isBot && (
           <View style={styles.botAvatar}>
             <Image
-              source={require('../../assets/logo.png')}
+              source={NAPPEE_LOGO_SOURCE}
               style={{ width: 24, height: 24 }}
               resizeMode="contain"
             />

@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { colors } from '../src/theme/colors';
 import { ArrowLeft } from 'lucide-react-native';
 import { getApiUrl } from '../src/store/useStore';
+import { NAPPEE_LOGO_SOURCE } from '../src/constants/logo';
 
 export default function OwnerLoginScreen() {
   const router = useRouter();
@@ -61,7 +62,7 @@ export default function OwnerLoginScreen() {
           <View style={styles.card}>
             <View style={styles.logoContainer}>
               <Image
-                source={require('../assets/logo.png')}
+                source={NAPPEE_LOGO_SOURCE}
                 style={{ width: 120, height: 120 }}
                 resizeMode="contain"
               />

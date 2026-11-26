@@ -27,6 +27,7 @@ import {
   Trash2,
 } from 'lucide-react-native';
 import { colors } from '../src/theme/colors';
+import { NAPPEE_LOGO_SOURCE } from '../src/constants/logo';
 
 type TabType = 'privacy' | 'terms' | 'about';
 
@@ -375,7 +376,7 @@ export default function LegalAndPoliciesScreen() {
             {/* App Card */}
             <View style={styles.appInfoCard}>
               <Image
-                source={require('../assets/logo.png')}
+                source={NAPPEE_LOGO_SOURCE}
                 style={styles.appLogo}
                 resizeMode="contain"
               />
